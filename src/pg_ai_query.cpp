@@ -13,7 +13,7 @@ PG_FUNCTION_INFO_V1(pg_ai_configure);
 Datum pg_gen_query(PG_FUNCTION_ARGS) {
     elog(INFO, "pg_gen_query() called");
 
-    const char* result = "Generated SQL query";
+    const char* result = "Generated SQL query new";
     PG_RETURN_TEXT_P(cstring_to_text(result));
 }
 
