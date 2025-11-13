@@ -10,6 +10,7 @@ extern "C" {
 #include <ai/anthropic.h>
 
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <optional>
@@ -155,8 +156,17 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
 
         nlohmann::json j = extractSQLFromResponse(result.text);
         std::string sql = j.value("sql", "");
+        std::string explanation = j.value("explanation", "");
+
         if (sql.empty()) {
-            return {.success = false, .error_message = "No SQL found in model response"};
+            return {.success = true, .explanation = explanation };
+        }
+
+        std::string upper_sql = sql;
+        std::transform(upper_sql.begin(), upper_sql.end(), upper_sql.begin(), ::toupper);
+        if (upper_sql.find("INFORMATION_SCHEMA") != std::string::npos ||
+            upper_sql.find("PG_CATALOG") != std::string::npos) {
+            return {.success = false, .error_message = "Generated query accesses system tables. Please query user tables only."};
         }
 
         std::vector<std::string> warnings_vec;
@@ -172,7 +182,7 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
         }
 
         return {.generated_query = sql,
-                .explanation = j.value("explaination", ""),
+                .explanation = explanation,
                 .warnings = warnings_vec,
                 .row_limit_applied = j.value("row_limit_applied", false),
                 .suggested_visualization = j.value("suggested_visualization", "table"),
@@ -189,15 +199,12 @@ std::string QueryGenerator::buildPrompt(const QueryRequest& request) {
     prompt << "Generate a PostgreSQL query for this request:\n\n";
     prompt << "Request: " << request.natural_language << "\n";
 
-    // Always automatically discover schema
     std::string schema_context;
     try {
-        // Get database schema automatically
         auto schema = getDatabaseTables();
         if (schema.success) {
             schema_context = formatSchemaForAI(schema);
 
-            // Check if query mentions specific tables and get their details
             std::vector<std::string> mentioned_tables;
             for (const auto& table : schema.tables) {
                 if (request.natural_language.find(table.table_name) != std::string::npos) {
@@ -205,7 +212,6 @@ std::string QueryGenerator::buildPrompt(const QueryRequest& request) {
                 }
             }
 
-            // Get detailed info for mentioned tables (limit to avoid context overflow)
             for (size_t i = 0; i < mentioned_tables.size() && i < 3; ++i) {
                 auto table_details = getTableDetails(mentioned_tables[i]);
                 if (table_details.success) {
@@ -214,7 +220,6 @@ std::string QueryGenerator::buildPrompt(const QueryRequest& request) {
             }
         }
     } catch (...) {
-        // If auto-schema fails, continue without it
     }
 
     if (!schema_context.empty()) {
@@ -328,7 +333,6 @@ TableDetails QueryGenerator::getTableDetails(const std::string& table_name, cons
             return result;
         }
 
-        // Query for column details with constraints
         std::string column_query = R"(
             SELECT
                 c.column_name,
@@ -418,7 +422,6 @@ TableDetails QueryGenerator::getTableDetails(const std::string& table_name, cons
             if (foreign_column) pfree(foreign_column);
         }
 
-        // Query for indexes
         std::string index_query = R"(
             SELECT indexname, indexdef
             FROM pg_indexes
@@ -461,14 +464,19 @@ TableDetails QueryGenerator::getTableDetails(const std::string& table_name, cons
 std::string QueryGenerator::formatSchemaForAI(const DatabaseSchema& schema) {
     std::ostringstream result;
     result << "=== DATABASE SCHEMA ===\n";
-    result << "Available tables:\n\n";
+    result << "IMPORTANT: These are the ONLY tables available in this database:\n\n";
 
     for (const auto& table : schema.tables) {
         result << "- " << table.schema_name << "." << table.table_name
                << " (" << table.table_type << ", ~" << table.estimated_rows << " rows)\n";
     }
 
-    result << "\nUse get_table_details(table_name) for detailed column information.\n";
+    if (schema.tables.empty()) {
+        result << "- No user tables found in database\n";
+    }
+
+    result << "\nCRITICAL: If user asks for tables not listed above, return an error with available table names.\n";
+    result << "Do NOT query information_schema or pg_catalog tables.\n";
     return result.str();
 }
 

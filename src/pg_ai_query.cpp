@@ -43,7 +43,7 @@ Datum pg_generate_query(PG_FUNCTION_ARGS) {
                             errmsg("Query generation failed: %s", result.error_message.c_str())));
         }
 
-        ereport(INFO, (errmsg("Generated SQL query: %s", result.explanation.c_str())));
+        ereport(INFO, (errmsg(result.explanation.c_str())));
 
         PG_RETURN_TEXT_P(cstring_to_text(result.generated_query.c_str()));
     } catch (const std::exception& e) {
