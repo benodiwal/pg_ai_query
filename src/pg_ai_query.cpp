@@ -1,8 +1,7 @@
 extern "C" {
+#include <postgres.h>
 #include <fmgr.h>
 #include <funcapi.h>
-#include <postgres.h>
-
 #include <utils/builtins.h>
 #include <utils/elog.h>
 }
@@ -14,19 +13,19 @@ extern "C" {
 extern "C" {
 PG_MODULE_MAGIC;
 
-PG_FUNCTION_INFO_V1(pg_generate_query);
-PG_FUNCTION_INFO_V1(pg_get_database_tables);
-PG_FUNCTION_INFO_V1(pg_get_table_details);
+PG_FUNCTION_INFO_V1(generate_query);
+PG_FUNCTION_INFO_V1(get_database_tables);
+PG_FUNCTION_INFO_V1(get_table_details);
 
 /**
- * pg_generate_query(natural_language_query text, api_key text DEFAULT NULL,
+ * generate_query(natural_language_query text, api_key text DEFAULT NULL,
  * provider text DEFAULT 'auto')
  *
  * Generates a SQL query from natural language input with automatic schema
  * discovery Provider options: 'openai', 'anthropic', 'auto' (auto-select based
  * on config)
  */
-Datum pg_generate_query(PG_FUNCTION_ARGS) {
+Datum generate_query(PG_FUNCTION_ARGS) {
   try {
     text* nl_query_arg = PG_GETARG_TEXT_PP(0);
     text* api_key_arg = PG_ARGISNULL(1) ? nullptr : PG_GETARG_TEXT_PP(1);
@@ -59,11 +58,11 @@ Datum pg_generate_query(PG_FUNCTION_ARGS) {
 }
 
 /**
- * pg_get_database_tables()
+ * get_database_tables()
  *
  * Returns JSON array of all tables in the database with their schema info
  */
-Datum pg_get_database_tables(PG_FUNCTION_ARGS) {
+Datum get_database_tables(PG_FUNCTION_ARGS) {
   try {
     auto result = pg_ai::QueryGenerator::getDatabaseTables();
 
@@ -95,12 +94,12 @@ Datum pg_get_database_tables(PG_FUNCTION_ARGS) {
 }
 
 /**
- * pg_get_table_details(table_name text, schema_name text DEFAULT 'public')
+ * get_table_details(table_name text, schema_name text DEFAULT 'public')
  *
  * Returns detailed JSON information about a specific table including columns,
  * constraints, and indexes
  */
-Datum pg_get_table_details(PG_FUNCTION_ARGS) {
+Datum get_table_details(PG_FUNCTION_ARGS) {
   try {
     text* table_name_arg = PG_GETARG_TEXT_PP(0);
     text* schema_name_arg = PG_ARGISNULL(1) ? nullptr : PG_GETARG_TEXT_PP(1);

@@ -1,0 +1,19 @@
+[book]
+authors = ["benodiwal"]
+language = "en"
+multilingual = false
+src = "src"
+title = "PostgreSQL AI Query Extension"
+description = "Generate SQL queries from natural language using AI - Documentation for pg_ai_query extension"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+smart-punctuation = true
+mathjax-support = false
+copy-fonts = true
+additional-css = []
+additional-js = []
