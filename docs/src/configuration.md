@@ -37,9 +37,6 @@ log_level = "INFO"
 # Enable or disable all logging output (true/false)
 enable_logging = false
 
-# Use PostgreSQL's elog system for logging (when running as extension)
-enable_postgresql_elog = true
-
 # Request timeout in milliseconds
 request_timeout_ms = 30000
 
@@ -52,6 +49,21 @@ enforce_limit = true
 
 # Default LIMIT value when not specified by user
 default_limit = 1000
+
+[response]
+# Show detailed explanation of what the query does
+show_explanation = true
+
+# Show warnings about performance, security, or data implications
+show_warnings = true
+
+# Show suggested visualization type for query results
+show_suggested_visualization = true
+
+# Use formatted response (JSON format) instead of plain SQL
+# When enabled, returns structured JSON with query, explanation, warnings, etc.
+# When disabled, returns plain SQL with optional comments
+use_formatted_response = false
 
 [openai]
 # Your OpenAI API key
@@ -78,7 +90,6 @@ Controls general behavior of the extension.
 |--------|------|---------|-------------|
 | `log_level` | string | "INFO" | Minimum level for log messages: DEBUG, INFO, WARNING, ERROR |
 | `enable_logging` | boolean | false | Enable/disable all logging output |
-| `enable_postgresql_elog` | boolean | true | Use PostgreSQL's internal logging system |
 | `request_timeout_ms` | integer | 30000 | Timeout for AI API requests in milliseconds |
 | `max_retries` | integer | 3 | Maximum retry attempts for failed API requests |
 
@@ -90,6 +101,17 @@ Controls query generation behavior.
 |--------|------|---------|-------------|
 | `enforce_limit` | boolean | true | Always add LIMIT clause to SELECT queries |
 | `default_limit` | integer | 1000 | Default row limit when none specified |
+
+### [response] Section
+
+Controls how query results are formatted and what additional information is included.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `show_explanation` | boolean | true | Include detailed explanation of what the query does |
+| `show_warnings` | boolean | true | Include warnings about performance, security, or data implications |
+| `show_suggested_visualization` | boolean | false | Include suggested visualization type for the query results |
+| `use_formatted_response` | boolean | false | Return structured JSON instead of plain SQL |
 
 ### [openai] Section
 

@@ -383,3 +383,184 @@ SELECT generate_query('show products where stock quantity is less than reorder l
 ```
 
 These examples demonstrate the flexibility and power of `pg_ai_query` for various database tasks, from simple queries to complex business intelligence analysis.
+
+## Enhanced Response Formatting Examples
+
+The following examples show how different response configuration options affect the output:
+
+### Example: Enhanced Text Response
+
+**Configuration**:
+```ini
+[response]
+show_explanation = true
+show_warnings = true
+show_suggested_visualization = true
+use_formatted_response = false
+```
+
+**Query**:
+```sql
+SELECT generate_query('monthly sales trend for the last year with top performing categories');
+```
+
+**Enhanced Response**:
+```sql
+SELECT
+    DATE_TRUNC('month', o.order_date) as month,
+    p.category,
+    SUM(o.total_amount) as monthly_sales,
+    COUNT(o.id) as order_count
+FROM orders o
+JOIN order_items oi ON o.id = oi.order_id
+JOIN products p ON oi.product_id = p.id
+WHERE o.order_date >= CURRENT_DATE - INTERVAL '1 year'
+GROUP BY DATE_TRUNC('month', o.order_date), p.category
+ORDER BY month DESC, monthly_sales DESC
+LIMIT 1000;
+
+-- Explanation:
+-- Analyzes monthly sales trends over the past year, broken down by product category.
+-- Shows total sales amount and order count for each category per month,
+-- helping identify seasonal patterns and top-performing categories over time.
+
+-- Warnings:
+-- 1. Multiple JOINs: Query involves 3 table joins which may impact performance on large datasets
+-- 2. Date calculation: Uses CURRENT_DATE which may give different results when run at different times
+-- 3. Index recommendation: Consider indexes on order_date, order_id, and product_id for optimal performance
+
+-- Suggested Visualization: line
+-- Reasoning: Time series data showing trends over months is best displayed as line charts,
+-- with separate lines for each category to compare performance patterns
+```
+
+### Example: JSON Response
+
+**Configuration**:
+```ini
+[response]
+show_explanation = true
+show_warnings = true
+show_suggested_visualization = true
+use_formatted_response = true
+```
+
+**Query**:
+```sql
+SELECT generate_query('top 10 customers by lifetime value');
+```
+
+**JSON Response**:
+```json
+{
+  "query": "SELECT u.id, u.name, u.email, SUM(o.total_amount) as lifetime_value, COUNT(o.id) as total_orders FROM users u JOIN orders o ON u.id = o.user_id GROUP BY u.id, u.name, u.email ORDER BY lifetime_value DESC LIMIT 10;",
+  "success": true,
+  "explanation": "Identifies the top 10 customers based on their total lifetime purchase value. Shows customer details along with their total spending and number of orders, useful for customer relationship management and targeted marketing.",
+  "warnings": [
+    "Customer segmentation: Consider including date ranges for more meaningful lifetime value calculations",
+    "Performance: Large customer and orders tables may require optimization with proper indexing"
+  ],
+  "suggested_visualization": "bar",
+  "row_limit_applied": true
+}
+```
+
+### Example: Minimal Response
+
+**Configuration**:
+```ini
+[response]
+show_explanation = false
+show_warnings = false
+show_suggested_visualization = false
+use_formatted_response = false
+```
+
+**Query**:
+```sql
+SELECT generate_query('all products in electronics category');
+```
+
+**Minimal Response**:
+```sql
+SELECT * FROM products WHERE category = 'electronics' LIMIT 1000;
+```
+
+### Example: Warnings Only
+
+**Configuration**:
+```ini
+[response]
+show_explanation = false
+show_warnings = true
+show_suggested_visualization = false
+use_formatted_response = false
+```
+
+**Query**:
+```sql
+SELECT generate_query('delete old order records from 2020');
+```
+
+**Response with Warnings**:
+```sql
+DELETE FROM orders WHERE EXTRACT(year FROM order_date) = 2020;
+
+-- Warnings:
+-- 1. DESTRUCTIVE OPERATION: This DELETE statement will permanently remove data
+-- 2. No transaction control: Consider wrapping in BEGIN/COMMIT for safety
+-- 3. Foreign key impact: Deleting orders may affect order_items table if cascade is not set
+-- 4. Backup recommendation: Ensure you have recent backups before executing
+-- 5. Row count check: Consider SELECT COUNT(*) first to verify the number of rows that will be deleted
+```
+
+### Working with JSON Responses in Applications
+
+**Python Example**:
+```python
+import psycopg2
+import json
+
+# Connect to database
+conn = psycopg2.connect("dbname=mydb user=myuser")
+cur = conn.cursor()
+
+# Execute query with JSON response
+cur.execute("SELECT generate_query('monthly sales by product category')")
+response_json = cur.fetchone()[0]
+
+# Parse JSON response
+response = json.loads(response_json)
+
+if response['success']:
+    # Extract query and execute it
+    data_query = response['query']
+    cur.execute(data_query)
+    results = cur.fetchall()
+
+    # Use metadata for visualization
+    viz_type = response.get('suggested_visualization', 'table')
+    explanation = response.get('explanation', '')
+    warnings = response.get('warnings', [])
+
+    print(f"Query explanation: {explanation}")
+    print(f"Suggested visualization: {viz_type}")
+
+    if warnings:
+        print("Warnings:")
+        for warning in warnings:
+            print(f"  - {warning}")
+
+    # Process results based on suggested visualization
+    if viz_type == 'line':
+        # Create line chart
+        create_line_chart(results)
+    elif viz_type == 'bar':
+        # Create bar chart
+        create_bar_chart(results)
+    else:
+        # Display as table
+        display_table(results)
+```
+
+These enhanced formatting examples show how the new configuration options provide flexible control over response detail and format, making the extension suitable for both interactive use and application integration.

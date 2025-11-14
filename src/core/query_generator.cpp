@@ -235,6 +235,7 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
 
 std::string QueryGenerator::buildPrompt(const QueryRequest& request) {
   std::ostringstream prompt;
+  const auto& cfg = config::ConfigManager::getConfig();
 
   prompt << "Generate a PostgreSQL query for this request:\n\n";
   prompt << "Request: " << request.natural_language << "\n";

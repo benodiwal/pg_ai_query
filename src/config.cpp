@@ -18,13 +18,19 @@ Configuration::Configuration() {
   // General settings defaults
   log_level = "INFO";
   enable_logging = false;  // Default: disable logging
-  enable_postgresql_elog = false;
   request_timeout_ms = 30000;  // 30 seconds
   max_retries = 3;
 
   // Query generation defaults
   enforce_limit = true;
   default_limit = 1000;
+
+  // Response format defaults
+  show_explanation = true;
+  show_warnings = true;
+  show_suggested_visualization = false;
+  use_formatted_response = false;
+
 
   // Set up default OpenAI provider
   default_provider.provider = Provider::OPENAI;
@@ -205,8 +211,6 @@ bool ConfigManager::parseConfig(const std::string& content) {
         config_.log_level = value;
       else if (key == "enable_logging")
         config_.enable_logging = (value == "true");
-      else if (key == "enable_postgresql_elog")
-        config_.enable_postgresql_elog = (value == "true");
       else if (key == "request_timeout_ms")
         config_.request_timeout_ms = std::stoi(value);
       else if (key == "max_retries")
@@ -216,6 +220,16 @@ bool ConfigManager::parseConfig(const std::string& content) {
         config_.enforce_limit = (value == "true");
       else if (key == "default_limit")
         config_.default_limit = std::stoi(value);
+    } else if (current_section == "response") {
+      if (key == "show_explanation")
+        config_.show_explanation = (value == "true");
+      else if (key == "show_warnings")
+        config_.show_warnings = (value == "true");
+      else if (key == "show_suggested_visualization")
+        config_.show_suggested_visualization = (value == "true");
+      else if (key == "use_formatted_response") {
+        config_.use_formatted_response = (value == "true");
+      }
     } else if (current_section == "openai") {
       auto provider_config = getProviderConfigMutable(Provider::OPENAI);
       if (!provider_config) {

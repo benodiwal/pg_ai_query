@@ -34,13 +34,18 @@ struct Configuration {
   // General settings
   std::string log_level;
   bool enable_logging;
-  bool enable_postgresql_elog;
   int request_timeout_ms;
   int max_retries;
 
   // Query generation settings
   bool enforce_limit;
   int default_limit;
+
+  // Response format settings
+  bool show_explanation;
+  bool show_warnings;
+  bool show_suggested_visualization;
+  bool use_formatted_response;
 
   // Default constructor with sensible defaults
   Configuration();

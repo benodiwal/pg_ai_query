@@ -34,6 +34,7 @@ include_directories(src)
 set(SOURCES
     src/pg_ai_query.cpp
     src/core/query_generator.cpp
+    src/core/response_formatter.cpp
     src/core/logger.cpp
     src/utils.cpp
     src/prompts.cpp
@@ -111,10 +112,18 @@ if(APPLE)
         LINK_SEARCH_END_STATIC ON
     )
 
-    # Force linking to specific system zlib to avoid duplicates
-    target_link_libraries(pg_ai_query PRIVATE "/usr/lib/libz.1.dylib")
+    # Find and link system zlib to avoid duplicates
+    find_library(SYSTEM_Z z REQUIRED)
+    if(SYSTEM_Z)
+        target_link_libraries(pg_ai_query PRIVATE ${SYSTEM_Z})
+        message(STATUS "Using system zlib at: ${SYSTEM_Z}")
+    else()
+        # Fallback to standard zlib
+        find_package(ZLIB REQUIRED)
+        target_link_libraries(pg_ai_query PRIVATE ZLIB::ZLIB)
+        message(STATUS "Using standard zlib package")
+    endif()
 
-    message(STATUS "Using system zlib at: /usr/lib/libz.1.dylib")
     message(STATUS "Found libz.1.dylib at: ${LIBZ_PATH}")
 endif()
 

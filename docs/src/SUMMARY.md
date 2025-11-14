@@ -5,6 +5,7 @@
 # Getting Started
 - [Installation](./installation.md)
 - [Configuration](./configuration.md)
+- [Response Formatting](./response-formatting.md)
 - [Quick Start](./quick-start.md)
 
 # Usage
