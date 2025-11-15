@@ -143,13 +143,7 @@ Place it at `~/.pg_ai.config` in the home directory of the user running PostgreS
 
 ### Can I use environment variables instead of a config file?
 
-**Yes.** You can set environment variables:
-```bash
-export PG_AI_OPENAI_API_KEY="your-key-here"
-export PG_AI_ENABLE_LOGGING="true"
-```
-
-Environment variables override configuration file settings.
+Currently, only configuration files are supported. Place your configuration at `~/.pg_ai.config`.
 
 ### How do I enable logging for debugging?
 
@@ -269,7 +263,7 @@ However, always review generated queries, especially for data modification opera
 
 - Set file permissions: `chmod 600 ~/.pg_ai.config`
 - Never commit keys to version control
-- Use environment variables in production
+- Use secure configuration files in production
 - Rotate keys regularly
 - Monitor usage through provider dashboards
 

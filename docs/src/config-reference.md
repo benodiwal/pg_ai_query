@@ -361,26 +361,9 @@ Configuration Error: request_timeout_ms must be between 1000 and 300000, got 500
 Configuration Error: OpenAI API key must start with 'sk-' or 'sk-proj-'
 ```
 
-## Environment Variable Override
+## Configuration File Only
 
-You can override configuration values using environment variables:
-
-```bash
-# Override API keys
-export PG_AI_OPENAI_API_KEY="sk-proj-env-key-here"
-export PG_AI_ANTHROPIC_API_KEY="sk-ant-env-key-here"
-
-# Override general settings
-export PG_AI_ENABLE_LOGGING="true"
-export PG_AI_LOG_LEVEL="DEBUG"
-export PG_AI_REQUEST_TIMEOUT_MS="45000"
-
-# Override query settings
-export PG_AI_ENFORCE_LIMIT="true"
-export PG_AI_DEFAULT_LIMIT="2000"
-```
-
-**Priority:** Environment variables take precedence over configuration file values.
+Currently, only configuration files are supported. All settings must be specified in `~/.pg_ai.config`.
 
 ## Security Considerations
 
@@ -400,7 +383,7 @@ ls -la ~/.pg_ai.config
 ### API Key Security
 
 - **Never commit** configuration files with API keys to version control
-- **Use environment variables** in containerized or CI/CD environments
+- **Use secure configuration files** in containerized or CI/CD environments
 - **Rotate keys regularly** as per your organization's security policy
 - **Monitor usage** through your AI provider's dashboard
 
@@ -427,6 +410,5 @@ api_key = "${ANTHROPIC_API_KEY}"  # Replace with actual key
 The extension loads configuration in this order:
 1. **Default values** (hardcoded)
 2. **Configuration file** (`~/.pg_ai.config`)
-3. **Environment variables** (highest priority)
 
-This allows for flexible deployment strategies while maintaining security.
+This provides a simple and secure configuration approach.

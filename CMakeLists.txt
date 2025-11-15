@@ -100,7 +100,7 @@ endif()
 if(APPLE)
     # Get the system library path where libz.1.dylib actually exists
     execute_process(COMMAND find /usr/lib /System/Library/Frameworks -name "libz.1.dylib" -type f 2>/dev/null | head -1
-                   OUTPUT_VARIABLE LIBZ_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
+        OUTPUT_VARIABLE LIBZ_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
     get_filename_component(LIBZ_DIR "${LIBZ_PATH}" DIRECTORY)
 
     set_target_properties(pg_ai_query PROPERTIES
@@ -147,10 +147,10 @@ set(PG_MAJOR_VERSION ${CMAKE_MATCH_1})
 # Handle PostgreSQL 16+ path differences
 if(PG_MAJOR_VERSION GREATER_EQUAL 16)
     # PostgreSQL 16+ expects extensions in the standard lib directory
-    get_filename_component(PG_BASE_DIR "${PG_PKGLIB}" DIRECTORY)
-    set(PG_LIB_DIR "${PG_BASE_DIR}/lib")
+    execute_process(COMMAND ${PG_CONFIG} --libdir
+        OUTPUT_VARIABLE PG_LIBDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
     install(TARGETS pg_ai_query
-        LIBRARY DESTINATION ${PG_LIB_DIR}
+        LIBRARY DESTINATION ${PG_LIBDIR}
     )
     message(STATUS "PostgreSQL 16+ detected, installing to: ${PG_LIB_DIR}")
 else()

@@ -174,15 +174,9 @@ The extension validates configuration on startup:
 - **Numeric Values**: Ensures timeouts and limits are positive integers
 - **Boolean Values**: Validates true/false values
 
-## Environment Variables
+## Configuration File Only
 
-You can also set configuration via environment variables (config file takes precedence):
-
-```bash
-export PG_AI_OPENAI_API_KEY="your-key-here"
-export PG_AI_ANTHROPIC_API_KEY="your-key-here"
-export PG_AI_ENABLE_LOGGING="true"
-```
+Currently, only configuration files are supported. All settings must be specified in `~/.pg_ai.config`.
 
 ## Security Considerations
 

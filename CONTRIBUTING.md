@@ -103,6 +103,8 @@ The project uses clang-format with Chromium style:
 
 ```bash
 # Format all source files
+make format 
+# OR
 find src -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i
 
 # Check formatting

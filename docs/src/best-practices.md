@@ -204,10 +204,11 @@ chmod 600 ~/.pg_ai.config
 chown postgres:postgres ~/.pg_ai.config  # For PostgreSQL user
 ```
 
-**Environment Variables (Alternative)**
-```bash
-# Use environment variables in containerized environments
-export PG_AI_OPENAI_API_KEY="your-key-here"
+**Configuration Files Only**
+```ini
+# Use secure configuration files
+[openai]
+api_key = "your-key-here"
 ```
 
 **Key Rotation**
@@ -352,7 +353,6 @@ services:
   ai-query-service:
     image: your-app:latest
     environment:
-      - PG_AI_CONFIG_PATH=/etc/pg_ai/config
       - DATABASE_URL=postgresql://ai_user:pass@db:5432/mydb
     volumes:
       - ./pg_ai_config:/etc/pg_ai
