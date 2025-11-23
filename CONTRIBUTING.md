@@ -5,9 +5,10 @@ We appreciate your interest in contributing to the PostgreSQL AI Query Extension
 ## Table of Contents
 
 - [Getting Started](#getting-started)
+- [Using the gh-issue Script](#using-the-gh-issue-script)
 - [Development Environment](#development-environment)
 - [Code Style and Standards](#code-style-and-standards)
-- [Testing](#testing)
+<!-- - [Testing](#testing) -->
 - [Submitting Changes](#submitting-changes)
 - [Reporting Issues](#reporting-issues)
 - [Feature Requests](#feature-requests)
@@ -53,6 +54,56 @@ Before you start contributing, make sure you have:
    make
    ```
 
+## Using the gh-issue Script
+
+We provide a Nushell script (`gh-issue`) to help analyze and plan solutions for GitHub issues without writing code immediately. This tool is particularly useful for complex issues that require careful analysis.
+
+### Prerequisites
+
+- [Nushell](https://www.nushell.sh/) installed on your system
+- [GitHub CLI (`gh`)](https://cli.github.com/) installed and authenticated
+
+### Usage
+
+The script accepts either an issue number or a full GitHub issue URL:
+
+```bash
+# Using issue number (for this repository)
+./gh-issue 1
+
+# Using issue URL
+./gh-issue https://github.com/benodiwal/pg_ai_query/issues/1
+
+# For a different repository (override default)
+./gh-issue 123 --repo "owner/repo"
+```
+
+### What It Does
+
+The script will:
+
+1. Fetch the issue details from GitHub (title, description, comments)
+2. Generate a comprehensive prompt for analyzing the issue
+3. Guide you through:
+   - Reviewing the issue context
+   - Examining relevant parts of the codebase
+   - Explaining the problem and root cause
+   - Creating a detailed implementation plan
+
+### Output
+
+The script generates a plan that includes:
+
+- Required code changes (SQL, C, or other relevant languages)
+- Impact on PostgreSQL extension functionality
+- Database compatibility considerations
+- Necessary tests and documentation updates
+- Performance and security implications
+- PostgreSQL version backwards compatibility
+- AI model integration considerations
+
+**Note**: The script is designed to create a plan only, not to write code. This helps ensure thorough analysis before implementation.
+
 ## Development Environment
 
 ### Required Tools
@@ -76,14 +127,14 @@ The project uses these key dependencies:
 For development, use Debug build:
 
 ```bash
-cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_LOGGER_TEST=ON ..
+cmake -DCMAKE_BUILD_TYPE=Debug ..
 ```
-
+<!-- 
 For release builds:
 
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Release ..
-```
+``` -->
 
 ## Code Style and Standards
 
@@ -125,20 +176,7 @@ find src -name "*.cpp" -o -name "*.hpp" | xargs clang-format --dry-run -Werror
 - **API Documentation**: Document all public interfaces
 - **Configuration**: Document all configuration options
 
-## Testing
-
-### Unit Tests
-
-Run the test suite:
-
-```bash
-# Build tests
-cmake -DBUILD_LOGGER_TEST=ON ..
-make
-
-# Run tests
-./test_logger
-```
+<!-- ## Testing
 
 ### Integration Tests
 
@@ -178,20 +216,20 @@ use_formatted_response = true
 [openai]
 api_key = "test-key-here"
 default_model = "gpt-3.5-turbo"
-```
+``` -->
 
 ## Submitting Changes
 
 ### Pull Request Process
 
-1. **Ensure tests pass**:
+<!-- 1. **Ensure tests pass**:
    ```bash
    make && make test
-   ```
+   ``` -->
 
-2. **Update documentation** if needed
+1. **Update documentation** if needed
 
-3. **Create descriptive commit messages**:
+2. **Create descriptive commit messages**:
    ```
    feat: add response formatting configuration
 
@@ -200,7 +238,7 @@ default_model = "gpt-3.5-turbo"
    - Update documentation for new features
    ```
 
-4. **Submit pull request**:
+3. **Submit pull request**:
    - Use a clear, descriptive title
    - Include a detailed description of changes
    - Reference any related issues
@@ -240,7 +278,7 @@ All submissions require review:
 
 ### Bug Reports
 
-When reporting bugs, include:
+When reporting bugs, please use the bug report template in `.github/ISSUE_TEMPLATE/bug_report.yml`. The template will guide you through providing:
 
 1. **PostgreSQL version and OS**
 2. **Extension version**
@@ -249,64 +287,15 @@ When reporting bugs, include:
 5. **Expected vs actual behavior**
 6. **Error messages and logs**
 
-### Issue Template
-
-```markdown
-## Bug Report
-
-**Environment:**
-- PostgreSQL version:
-- OS:
-- Extension version:
-
-**Configuration:**
-```ini
-[response]
-show_explanation = true
-# ... (remove API keys)
-```
-
-**Steps to reproduce:**
-1.
-2.
-3.
-
-**Expected behavior:**
-
-**Actual behavior:**
-
-**Error messages:**
-```
-
 ## Feature Requests
 
-When requesting features:
+When requesting features, please use the feature request template in `.github/ISSUE_TEMPLATE/`. The template will guide you through:
 
-1. **Describe the use case**
-2. **Explain the expected behavior**
-3. **Provide examples**
-4. **Consider implementation complexity**
-5. **Discuss potential alternatives**
-
-### Feature Request Template
-
-```markdown
-## Feature Request
-
-**Use case:**
-Describe the scenario where this feature would be useful.
-
-**Proposed solution:**
-Describe how you envision the feature working.
-
-**Example:**
-```sql
-SELECT generate_query('example usage');
-```
-
-**Alternatives:**
-Other ways to solve the same problem.
-```
+1. **Describing the use case**
+2. **Explaining the expected behavior**
+3. **Providing examples**
+4. **Considering implementation complexity**
+5. **Discussing potential alternatives**
 
 ## Documentation
 
@@ -362,25 +351,3 @@ If you need help:
 2. **Issues**: Search existing issues for similar problems
 3. **Discussions**: Start a discussion for questions
 4. **Community**: Engage with other contributors
-
-## Release Process
-
-### Version Numbers
-
-We use semantic versioning (SemVer):
-
-- **MAJOR**: Incompatible API changes
-- **MINOR**: Backward-compatible functionality additions
-- **PATCH**: Backward-compatible bug fixes
-
-### Release Checklist
-
-- [ ] Update version numbers
-- [ ] Update CHANGELOG.md
-- [ ] Test with multiple PostgreSQL versions
-- [ ] Update documentation
-- [ ] Create release notes
-- [ ] Tag release in Git
-- [ ] Update package distributions
-
-Thank you for contributing to the PostgreSQL AI Query Extension! Your help makes this project better for everyone.
