@@ -361,9 +361,23 @@ Configuration Error: request_timeout_ms must be between 1000 and 300000, got 500
 Configuration Error: OpenAI API key must start with 'sk-' or 'sk-proj-'
 ```
 
-## Configuration File Only
+## Environment Variables
 
-Currently, only configuration files are supported. All settings must be specified in `~/.pg_ai.config`.
+In addition to the configuration file, API keys can be provided via environment variables.
+
+| Environment Variable | Description |
+|----------------------|-------------|
+| `OPENAI_API_KEY` | API key for OpenAI |
+| `ANTHROPIC_API_KEY` | API key for Anthropic |
+
+**Note:** Environment variables take precedence over values specified in the configuration file.
+
+### Example Usage
+
+```bash
+export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
 
 ## Security Considerations
 
@@ -407,8 +421,10 @@ api_key = "${ANTHROPIC_API_KEY}"  # Replace with actual key
 
 ### Configuration Loading Order
 
-The extension loads configuration in this order:
+The extension loads configuration in this order (last one wins):
+
 1. **Default values** (hardcoded)
 2. **Configuration file** (`~/.pg_ai.config`)
+3. **Environment variables** (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`)
 
-This provides a simple and secure configuration approach.
+This allows you to override file-based configuration with environment variables for specific runs or in containerized environments.

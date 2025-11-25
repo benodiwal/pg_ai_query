@@ -174,9 +174,25 @@ The extension validates configuration on startup:
 - **Numeric Values**: Ensures timeouts and limits are positive integers
 - **Boolean Values**: Validates true/false values
 
-## Configuration File Only
+## Environment Variables
 
-Currently, only configuration files are supported. All settings must be specified in `~/.pg_ai.config`.
+In addition to the configuration file, you can configure API keys using environment variables. This is useful for containerized environments or when you prefer not to store secrets in files.
+
+| Environment Variable | Description |
+|----------------------|-------------|
+| `OPENAI_API_KEY` | API key for OpenAI |
+| `ANTHROPIC_API_KEY` | API key for Anthropic |
+
+**Note:** Environment variables take precedence over values specified in the configuration file.
+
+### Example Usage
+
+```bash
+export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+If no configuration file exists, setting these environment variables will automatically initialize the extension with default settings (e.g., `gpt-4o` for OpenAI).
 
 ## Security Considerations
 
