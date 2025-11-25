@@ -33,7 +33,7 @@ Before you start contributing, make sure you have:
 
 2. **Clone your fork**:
    ```bash
-   git clone https://github.com/your-username/pg_ai_query.git
+   git clone https://github.com/benodiwal/pg_ai_query.git
    cd pg_ai_query
    ```
 
