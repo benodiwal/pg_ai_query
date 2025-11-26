@@ -104,3 +104,16 @@ Desktop.ini
 # Local development
 local_config/
 dev_setup/
+
+# Nix
+result
+result-*
+.direnv/
+.pgdata/
+
+# Rust/Cargo (local installation in Nix env)
+.cargo/
+.rustup/
+
+# Note: .envrc is committed to the repository
+# flake.lock is also committed for reproducibility

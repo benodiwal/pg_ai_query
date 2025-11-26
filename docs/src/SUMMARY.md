@@ -25,6 +25,9 @@
 - [Performance & Best Practices](./best-practices.md)
 - [Integration Patterns](./integration.md)
 
+# Development
+- [Nix Development Environment](./nix-development.md)
+
 # Reference
 - [Function Reference](./function-reference.md)
 - [API Reference](./api-reference.md)
