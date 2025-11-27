@@ -82,18 +82,13 @@ void ConfigManager::loadEnvConfig() {
   if (openai_key) {
     auto provider_config = getProviderConfigMutable(Provider::OPENAI);
     if (!provider_config) {
-      ProviderConfig new_config;
-      new_config.provider = Provider::OPENAI;
-      // Set default model for OpenAI if creating new config
-      ModelConfig gpt4o;
-      gpt4o.name = "gpt-4o";
-      gpt4o.description = "GPT-4 Omni - Latest model";
-      gpt4o.max_tokens = 16384;
-      gpt4o.temperature = 0.7;
-      new_config.available_models.push_back(gpt4o);
-      new_config.default_model = gpt4o;
+      ProviderConfig config;
+      config.provider = Provider::OPENAI;
+      config.default_model = "gpt-4o";
+      config.default_max_tokens = 16384;
+      config.default_temperature = 0.7;
 
-      config_.providers.push_back(new_config);
+      config_.providers.push_back(config);
       provider_config = &config_.providers.back();
     }
     provider_config->api_key = openai_key;
@@ -104,18 +99,13 @@ void ConfigManager::loadEnvConfig() {
   if (anthropic_key) {
     auto provider_config = getProviderConfigMutable(Provider::ANTHROPIC);
     if (!provider_config) {
-      ProviderConfig new_config;
-      new_config.provider = Provider::ANTHROPIC;
-      // Set default model for Anthropic if creating new config
-      ModelConfig claude3_5;
-      claude3_5.name = "claude-3-5-sonnet-20241022";
-      claude3_5.description = "Claude 3.5 Sonnet - Latest model";
-      claude3_5.max_tokens = 8192;
-      claude3_5.temperature = 0.7;
-      new_config.available_models.push_back(claude3_5);
-      new_config.default_model = claude3_5;
+      ProviderConfig config;
+      config.provider = Provider::ANTHROPIC;
+      config.default_model = "claude-3-5-sonnet-20241022";
+      config.default_max_tokens = 8192;
+      config.default_temperature = 0.7;
 
-      config_.providers.push_back(new_config);
+      config_.providers.push_back(config);
       provider_config = &config_.providers.back();
     }
     provider_config->api_key = anthropic_key;
@@ -236,11 +226,10 @@ bool ConfigManager::parseConfig(const std::string& content) {
     } else if (current_section == "openai") {
       auto provider_config = getProviderConfigMutable(Provider::OPENAI);
       if (!provider_config) {
-        // Create new provider config
-        ProviderConfig new_config;
-        new_config.provider = Provider::OPENAI;
-        new_config.default_model = "gpt-4o";
-        config_.providers.push_back(new_config);
+        ProviderConfig config;
+        config.provider = Provider::OPENAI;
+        config.default_model = "gpt-4o";
+        config_.providers.push_back(config);
         provider_config = &config_.providers.back();
       }
 
@@ -256,12 +245,12 @@ bool ConfigManager::parseConfig(const std::string& content) {
     } else if (current_section == "anthropic") {
       auto provider_config = getProviderConfigMutable(Provider::ANTHROPIC);
       if (!provider_config) {
-        ProviderConfig new_config;
-        new_config.provider = Provider::ANTHROPIC;
-        new_config.default_model = "claude-sonnet-4-5-20250929";
-        new_config.default_max_tokens = 8192;
+        ProviderConfig config;
+        config.provider = Provider::ANTHROPIC;
+        config.default_model = "claude-sonnet-4-5-20250929";
+        config.default_max_tokens = 8192;
 
-        config_.providers.push_back(new_config);
+        config_.providers.push_back(config);
         provider_config = &config_.providers.back();
       }
 

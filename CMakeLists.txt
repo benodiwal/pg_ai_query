@@ -190,34 +190,3 @@ if(BUILD_LOGGER_TEST)
     )
     target_include_directories(test_logger PRIVATE src)
 endif()
-
-# Optional: Build config test
-# Uncomment to build: cmake .. -DBUILD_CONFIG_TEST=ON
-option(BUILD_CONFIG_TEST "Build config test executable" OFF)
-if(BUILD_CONFIG_TEST)
-    add_executable(test_config
-        src/test_config.cpp
-        src/config.cpp
-        src/utils.cpp
-        src/core/logger.cpp
-    )
-    target_include_directories(test_config PRIVATE src)
-    
-    if(Intl_FOUND)
-        target_link_libraries(test_config PRIVATE ${Intl_LIBRARIES})
-        target_include_directories(test_config PRIVATE ${Intl_INCLUDE_DIRS})
-    endif()
-
-    add_executable(test_config_no_file
-        src/test_config_no_file.cpp
-        src/config.cpp
-        src/utils.cpp
-        src/core/logger.cpp
-    )
-    target_include_directories(test_config_no_file PRIVATE src)
-    
-    if(Intl_FOUND)
-        target_link_libraries(test_config_no_file PRIVATE ${Intl_LIBRARIES})
-        target_include_directories(test_config_no_file PRIVATE ${Intl_INCLUDE_DIRS})
-    endif()
-endif()
