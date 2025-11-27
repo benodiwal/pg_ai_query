@@ -8,23 +8,18 @@ namespace pg_ai::config {
 
 enum class Provider { OPENAI, ANTHROPIC, UNKNOWN };
 
-struct ModelConfig {
-  std::string name;
-  std::string description;
-  int max_tokens;
-  double temperature;
-
-  ModelConfig() : max_tokens(4096), temperature(0.7) {}
-};
-
 struct ProviderConfig {
   Provider provider;
   std::string api_key;
-  std::vector<ModelConfig> available_models;
-  ModelConfig default_model;
+  std::string default_model;
+  int default_max_tokens;
+  double default_temperature;
 
   // Default constructor
-  ProviderConfig() : provider(Provider::UNKNOWN) {}
+  ProviderConfig()
+      : provider(Provider::UNKNOWN),
+        default_max_tokens(4096),
+        default_temperature(0.7) {}
 };
 
 struct Configuration {
@@ -80,13 +75,6 @@ class ConfigManager {
   static const ProviderConfig* getProviderConfig(Provider provider);
 
   /**
-   * @brief Get model config by name from default provider
-   * @param model_name Name of the model
-   * @return Pointer to model config, or nullptr if not found
-   */
-  static const ModelConfig* getModelConfig(const std::string& model_name);
-
-  /**
    * @brief Convert provider enum to string
    */
   static std::string providerToString(Provider provider);
@@ -125,7 +113,5 @@ class ConfigManager {
 #define PG_AI_CONFIG() pg_ai::config::ConfigManager::getConfig()
 #define PG_AI_PROVIDER_CONFIG(provider) \
   pg_ai::config::ConfigManager::getProviderConfig(provider)
-#define PG_AI_MODEL_CONFIG(model) \
-  pg_ai::config::ConfigManager::getModelConfig(model)
 
 }  // namespace pg_ai::config

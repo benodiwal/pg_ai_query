@@ -1,4 +1,5 @@
 #include "../include/logger.hpp"
+#include <iostream>
 
 namespace pg_ai::logger {
 
@@ -15,7 +16,7 @@ void Logger::debug(const std::string& message) {
 #ifdef USE_POSTGRESQL_ELOG
   ereport(DEBUG1, (errmsg("[pg_ai_query] %s", message.c_str())));
 #else
-  std::cout << "[DEBUG] [pg_ai_query] " << message << std::endl;
+  std::cerr << "[DEBUG] [pg_ai_query] " << message << std::endl;
 #endif
 }
 
@@ -25,7 +26,7 @@ void Logger::info(const std::string& message) {
 #ifdef USE_POSTGRESQL_ELOG
   ereport(INFO, (errmsg("[pg_ai_query] %s", message.c_str())));
 #else
-  std::cout << "[INFO] [pg_ai_query] " << message << std::endl;
+  std::cerr << "[INFO] [pg_ai_query] " << message << std::endl;
 #endif
 }
 

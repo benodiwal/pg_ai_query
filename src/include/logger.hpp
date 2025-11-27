@@ -8,8 +8,7 @@ extern "C" {
 
 #include <utils/elog.h>
 }
-#else
-#include <iostream>
+
 #endif
 
 namespace pg_ai::logger {

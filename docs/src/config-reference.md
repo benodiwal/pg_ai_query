@@ -181,7 +181,7 @@ Configuration for OpenAI provider.
 | Option | Type | Default | Values | Description |
 |--------|------|---------|--------|-------------|
 | `api_key` | string | "" | API key format | Your OpenAI API key |
-| `default_model` | string | "gpt-4o" | Model names | Default OpenAI model to use |
+| `default_model` | string | "gpt-4o" | Any valid model name | Default OpenAI model to use |
 
 #### api_key
 
@@ -218,7 +218,7 @@ Configuration for Anthropic (Claude) provider.
 | Option | Type | Default | Values | Description |
 |--------|------|---------|--------|-------------|
 | `api_key` | string | "" | API key format | Your Anthropic API key |
-| `default_model` | string | "claude-3-5-sonnet-20241022" | Model names | Default Claude model to use |
+| `default_model` | string | "claude-3-5-sonnet-20241022" | Any valid model name | Default Claude model to use |
 
 #### api_key
 
@@ -349,7 +349,7 @@ Each configuration value is validated:
 - **Type Checking**: Strings, integers, and booleans are validated
 - **Range Checking**: Numeric values must be within acceptable ranges
 - **Format Checking**: API keys must match expected formats
-- **Model Validation**: Model names must be supported
+- **Model Validation**: Accepts any valid model name string
 
 ### Error Handling
 

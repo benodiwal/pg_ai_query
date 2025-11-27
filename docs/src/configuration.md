@@ -123,9 +123,11 @@ OpenAI provider configuration.
 | `default_model` | string | "gpt-4o" | Default OpenAI model to use |
 
 **Available OpenAI Models:**
+You can use any valid OpenAI model name. Common options include:
 - `gpt-4o` - Latest GPT-4 Omni model (recommended)
 - `gpt-4` - High-quality GPT-4 model
 - `gpt-3.5-turbo` - Fast and efficient model
+- `o1-preview` - New reasoning model
 
 ### [anthropic] Section
 
@@ -137,7 +139,11 @@ Anthropic (Claude) provider configuration.
 | `default_model` | string | "claude-3-5-sonnet-20241022" | Default Claude model to use |
 
 **Available Anthropic Models:**
+You can use any valid Anthropic model name. Common options include:
 - `claude-3-5-sonnet-20241022` - Latest Claude 3.5 Sonnet model
+- `claude-3-opus-20240229` - Most powerful Claude 3 model
+- `claude-3-sonnet-20240229` - Balanced Claude 3 model
+- `claude-3-haiku-20240307` - Fastest and most compact model
 
 ## Setting Up API Keys
 
@@ -170,7 +176,7 @@ The extension automatically selects an AI provider based on the following priori
 The extension validates configuration on startup:
 
 - **API Key Format**: Checks that API keys follow expected format
-- **Model Availability**: Validates that specified models are available
+- **Model Availability**: Accepts any valid model name string (verify availability with provider)
 - **Numeric Values**: Ensures timeouts and limits are positive integers
 - **Boolean Values**: Validates true/false values
 

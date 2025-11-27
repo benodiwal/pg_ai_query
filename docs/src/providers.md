@@ -11,6 +11,7 @@ The `pg_ai_query` extension supports multiple AI providers, each with different 
 **API Endpoint**: `https://api.openai.com/v1/`
 
 **Available Models**:
+The extension supports any valid OpenAI model name. The following are common examples:
 
 | Model | Description | Context Length | Best For |
 |-------|-------------|----------------|----------|
@@ -25,6 +26,7 @@ The `pg_ai_query` extension supports multiple AI providers, each with different 
 **API Endpoint**: `https://api.anthropic.com/v1/`
 
 **Available Models**:
+The extension supports any valid Anthropic model name. The following are common examples:
 
 | Model | Description | Context Length | Best For |
 |-------|-------------|----------------|----------|
