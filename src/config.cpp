@@ -31,7 +31,7 @@ Configuration::Configuration() {
   show_suggested_visualization = false;
   use_formatted_response = false;
 
-  // Set up default OpenAI provider
+  // Default OpenAI provider
   default_provider.provider = Provider::OPENAI;
   default_provider.api_key = "";
   default_provider.default_model = "gpt-4o";
@@ -101,7 +101,7 @@ void ConfigManager::loadEnvConfig() {
     if (!provider_config) {
       ProviderConfig config;
       config.provider = Provider::ANTHROPIC;
-      config.default_model = "claude-3-5-sonnet-20241022";
+      config.default_model = "claude-sonnet-4-5-20250929";
       config.default_max_tokens = 8192;
       config.default_temperature = 0.7;
 

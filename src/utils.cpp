@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 #include "./include/logger.hpp"
 
 namespace pg_ai::utils {
@@ -42,4 +44,54 @@ std::string read_file_or_throw(const std::string& filepath) {
   }
   return std::move(content);
 }
+
+// CR-someday @benodiwal: This is the basic version of API Error formatting,
+// there is a lot of place for improvement. Currently it focuses on wrong model
+// names in conf relate errors.
+std::string formatAPIError(const std::string& raw_error) {
+  std::string error_to_parse = raw_error;
+
+  size_t json_start = raw_error.find('{');
+  if (json_start != std::string::npos) {
+    error_to_parse = raw_error.substr(json_start);
+  }
+
+  try {
+    auto error_json = nlohmann::json::parse(error_to_parse);
+
+    if (error_json.contains("error")) {
+      auto error_obj = error_json["error"];
+
+      if (error_obj.contains("type") &&
+          error_obj["type"] == "not_found_error") {
+        if (error_obj.contains("message")) {
+          std::string msg = error_obj["message"];
+
+          size_t model_pos = msg.find("model:");
+          if (model_pos != std::string::npos) {
+            std::string model_name = msg.substr(model_pos + 7);
+            model_name.erase(0, model_name.find_first_not_of(" \t"));
+            model_name.erase(model_name.find_last_not_of(" \t") + 1);
+
+            return "Invalid model '" + model_name +
+                   "'. Please check your configuration and use a valid model "
+                   "name. "
+                   "Common models: 'claude-sonnet-4-5-20250929' (Anthropic), "
+                   "'gpt-4o' (OpenAI).";
+          }
+        }
+        return "Model not found. Please check your model configuration and "
+               "ensure you're using a valid model name.";
+      }
+
+      if (error_obj.contains("message")) {
+        return error_obj["message"];
+      }
+    }
+  } catch (const nlohmann::json::exception&) {
+  }
+
+  return raw_error;
+}
+
 }  // namespace pg_ai::utils

@@ -182,7 +182,8 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
 
     if (!result) {
       return {.success = false,
-              .error_message = "AI API error: " + result.error_message()};
+              .error_message = "AI API error: " +
+                               utils::formatAPIError(result.error_message())};
     }
 
     if (result.text.empty()) {
@@ -752,7 +753,8 @@ ExplainResult QueryGenerator::explainQuery(const ExplainRequest& request) {
     auto ai_result = client.generate_text(options);
 
     if (!ai_result) {
-      result.error_message = "AI API error: " + ai_result.error_message();
+      result.error_message =
+          "AI API error: " + utils::formatAPIError(ai_result.error_message());
       return result;
     }
 
