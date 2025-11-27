@@ -95,7 +95,7 @@ You can use any valid Anthropic model name. Here is a comparison of common model
 | Model Name | Type | Cost | Pros | Cons |
 | :--- | :--- | :--- | :--- | :--- |
 | `claude-4.5-opus` | Next Gen | High | Ultimate reasoning and capabilities | High cost, availability limited |
-| `claude-3-5-sonnet-20241022` | Flagship | Moderate | Top-tier reasoning and coding | - |
+| `claude-sonnet-4-5-20250929` | Flagship | Moderate | Top-tier reasoning and coding | - |
 | `claude-3-haiku-20240307` | Economy | Low | Extremely fast and cheap | Lower reasoning capability |
 
 ### Basic Usage

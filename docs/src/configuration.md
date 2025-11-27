@@ -76,8 +76,8 @@ default_model = "gpt-4o"
 # Your Anthropic API key (if using Claude)
 api_key = "sk-ant-your-anthropic-api-key-here"
 
-# Default model to use (options: claude-3-5-sonnet-20241022)
-default_model = "claude-3-5-sonnet-20241022"
+# Default model to use (options: claude-sonnet-4-5-20250929)
+default_model = "claude-sonnet-4-5-20250929"
 ```
 
 ## Configuration Sections
@@ -136,11 +136,11 @@ Anthropic (Claude) provider configuration.
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `api_key` | string | "" | Your Anthropic API key from console.anthropic.com |
-| `default_model` | string | "claude-3-5-sonnet-20241022" | Default Claude model to use |
+| `default_model` | string | "claude-sonnet-4-5-20250929" | Default Claude model to use |
 
 **Available Anthropic Models:**
 You can use any valid Anthropic model name. Common options include:
-- `claude-3-5-sonnet-20241022` - Latest Claude 3.5 Sonnet model
+- `claude-sonnet-4-5-20250929` - Latest Claude 3.5 Sonnet model
 - `claude-3-opus-20240229` - Most powerful Claude 3 model
 - `claude-3-sonnet-20240229` - Balanced Claude 3 model
 - `claude-3-haiku-20240307` - Fastest and most compact model

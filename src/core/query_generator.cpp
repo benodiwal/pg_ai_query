@@ -142,7 +142,7 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
         model_name =
             (provider_config && !provider_config->default_model.empty())
                 ? provider_config->default_model
-                : "claude-3-5-sonnet-20241022";
+                : "claude-sonnet-4-5-20250929";
       } else {
         logger::Logger::warning("Unknown provider, defaulting to OpenAI");
         client = ai::openai::create_client(api_key);
@@ -150,8 +150,6 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
       }
       logger::Logger::info("Using Provider: " +
                            config::ConfigManager::providerToString(provider));
-      logger::Logger::info("Using model: " + model_name);
-      logger::Logger::info("Using API key: " + api_key);
     } catch (const std::exception& e) {
       logger::Logger::error("Failed to create " +
                             config::ConfigManager::providerToString(provider) +
@@ -728,24 +726,15 @@ ExplainResult QueryGenerator::explainQuery(const ExplainRequest& request) {
             (provider_config && !provider_config->default_model.empty())
                 ? provider_config->default_model
                 : "gpt-4o";
-        logger::Logger::info("Using Provider: OPENAI");
-        logger::Logger::info("Using model: " + model_name);
-        logger::Logger::info("Using API key: " + api_key);
       } else if (selected_provider == config::Provider::ANTHROPIC) {
         client = ai::anthropic::create_client(api_key);
         model_name =
             (provider_config && !provider_config->default_model.empty())
                 ? provider_config->default_model
-                : "claude-3-5-sonnet-20241022";
-        logger::Logger::info("Using Provider: ANTHROPIC");
-        logger::Logger::info("Using model: " + model_name);
-        logger::Logger::info("Using API key: " + api_key);
+                : "claude-sonnet-4-5-20250929";
       } else {
         client = ai::openai::create_client(api_key);
         model_name = "gpt-4o";
-        logger::Logger::info("Using Provider: 3rd OPENAI");
-        logger::Logger::info("Using model: " + model_name);
-        logger::Logger::info("Using API key: " + api_key);
       }
     } catch (const std::exception& e) {
       result.error_message =

@@ -30,7 +30,7 @@ The extension supports any valid Anthropic model name. The following are common 
 
 | Model | Description | Context Length | Best For |
 |-------|-------------|----------------|----------|
-| `claude-3-5-sonnet-20241022` | Latest Claude 3.5 Sonnet | 200,000 tokens | Complex analysis, detailed reasoning |
+| `claude-sonnet-4-5-20250929` | Latest Claude 3.5 Sonnet | 200,000 tokens | Complex analysis, detailed reasoning |
 
 ## Provider Selection
 
@@ -73,7 +73,7 @@ default_model = "gpt-4o"
 
 [anthropic]
 api_key = "your-anthropic-key"
-default_model = "claude-3-5-sonnet-20241022"
+default_model = "claude-sonnet-4-5-20250929"
 ```
 
 ## Provider Comparison
@@ -164,7 +164,7 @@ default_model = "gpt-4o"
 ```ini
 [anthropic]
 api_key = "sk-ant-your-api-key-here"
-default_model = "claude-3-5-sonnet-20241022"
+default_model = "claude-sonnet-4-5-20250929"
 
 # Optional: Model-specific settings (future feature)
 # claude_temperature = 0.7

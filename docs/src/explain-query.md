@@ -167,7 +167,7 @@ default_model = "gpt-4o"
 
 [anthropic]
 api_key = "your-anthropic-api-key"
-default_model = "claude-3-5-sonnet-20241022"
+default_model = "claude-sonnet-4-5-20250929"
 ```
 
 ### Provider Selection

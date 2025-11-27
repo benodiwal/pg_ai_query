@@ -258,7 +258,7 @@ bool ConfigManager::parseConfig(const std::string& content) {
       if (!provider_config) {
         ProviderConfig new_config;
         new_config.provider = Provider::ANTHROPIC;
-        new_config.default_model = "claude-3-5-sonnet-20241022";
+        new_config.default_model = "claude-sonnet-4-5-20250929";
         new_config.default_max_tokens = 8192;
 
         config_.providers.push_back(new_config);

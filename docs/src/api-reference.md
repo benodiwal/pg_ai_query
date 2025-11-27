@@ -213,7 +213,7 @@ default_model = "gpt-4o" | "gpt-4" | "gpt-3.5-turbo"
 [anthropic]
 # Anthropic provider settings
 api_key = "<api_key_string>"
-default_model = "claude-3-5-sonnet-20241022"
+default_model = "claude-sonnet-4-5-20250929"
 ```
 
 ### Configuration Validation Rules

@@ -98,7 +98,7 @@ Accuracy depends on several factors:
 default_model = "gpt-4o"  # or "gpt-4", "gpt-3.5-turbo"
 
 [anthropic]
-default_model = "claude-3-5-sonnet-20241022"
+default_model = "claude-sonnet-4-5-20250929"
 ```
 
 You can also specify the provider per query:
@@ -166,7 +166,7 @@ default_model = "gpt-4o"
 
 [anthropic]
 api_key = "sk-ant-anthropic-key"
-default_model = "claude-3-5-sonnet-20241022"
+default_model = "claude-sonnet-4-5-20250929"
 ```
 
 The extension will use the first configured provider as default.

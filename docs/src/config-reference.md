@@ -49,7 +49,7 @@ default_model = "gpt-4o"
 [anthropic]
 # Anthropic provider configuration
 api_key = ""
-default_model = "claude-3-5-sonnet-20241022"
+default_model = "claude-sonnet-4-5-20250929"
 ```
 
 ## Configuration Sections
@@ -218,7 +218,7 @@ Configuration for Anthropic (Claude) provider.
 | Option | Type | Default | Values | Description |
 |--------|------|---------|--------|-------------|
 | `api_key` | string | "" | API key format | Your Anthropic API key |
-| `default_model` | string | "claude-3-5-sonnet-20241022" | Any valid model name | Default Claude model to use |
+| `default_model` | string | "claude-sonnet-4-5-20250929" | Any valid model name | Default Claude model to use |
 
 #### api_key
 
@@ -238,12 +238,12 @@ api_key = "sk-ant-abc123..."  # Your actual API key
 Default Anthropic model to use for query generation.
 
 **Available Models:**
-- `"claude-3-5-sonnet-20241022"`: Latest Claude 3.5 Sonnet model
+- `"claude-sonnet-4-5-20250929"`: Latest Claude 3.5 Sonnet model
 
 **Example:**
 ```ini
 [anthropic]
-default_model = "claude-3-5-sonnet-20241022"  # Use Claude 3.5 Sonnet
+default_model = "claude-sonnet-4-5-20250929"  # Use Claude 3.5 Sonnet
 ```
 
 ## Configuration Examples
@@ -308,7 +308,7 @@ default_model = "gpt-4o"
 
 [anthropic]
 api_key = "sk-ant-anthropic-key-here"
-default_model = "claude-3-5-sonnet-20241022"
+default_model = "claude-sonnet-4-5-20250929"
 
 # Extension will use OpenAI first (first configured)
 # Falls back to Anthropic if OpenAI fails
