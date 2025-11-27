@@ -402,30 +402,6 @@ jobs:
         path: security-summary.txt
         retention-days: 90
 
-    - name: Comment on PR (if applicable)
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const summary = `## Security Assessment Results
-
-          | Check | Status |
-          |-------|--------|
-          | Dependency Check | ${{ needs.dependency-check.result == 'success' && 'PASS' || 'FAIL' }} |
-          | Secret Scan | ${{ needs.secret-scan.result == 'success' && 'PASS' || 'FAIL' }} |
-          | Vulnerability Assessment | ${{ needs.vulnerability-assessment.result == 'success' && 'PASS' || 'FAIL' }} |
-          | License Compliance | ${{ needs.license-compliance.result == 'success' && 'PASS' || 'FAIL' }} |
-
-          [View detailed results](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-          *Security assessment completed automatically*`;
-
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: summary
-          });
 
   update-security-advisories:
     name: Check Security Advisories
