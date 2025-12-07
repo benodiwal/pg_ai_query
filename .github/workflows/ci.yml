@@ -84,20 +84,23 @@ jobs:
       - name: Setup PostgreSQL (Ubuntu)
         if: matrix.os == 'ubuntu-24.04'
         run: |
-          # Use version-specific PostgreSQL cluster
+          # Use version-specific binaries (similar to macOS approach)
           PG_BIN=/usr/lib/postgresql/${{ matrix.pg_version }}/bin
+          PGDATA=/tmp/pgdata-${{ matrix.pg_version }}
 
-          # Start only the specific PostgreSQL version's cluster
-          sudo pg_ctlcluster ${{ matrix.pg_version }} main start
+          # Initialize a fresh database cluster
+          sudo mkdir -p $PGDATA
+          sudo chown postgres:postgres $PGDATA
+          sudo -u postgres $PG_BIN/initdb -D $PGDATA
 
-          # Create user and database using version-specific tools
-          sudo -u postgres $PG_BIN/createuser -s $USER
-          sudo -u postgres $PG_BIN/createdb testdb
+          # Start PostgreSQL on a fixed port
+          sudo -u postgres $PG_BIN/pg_ctl -D $PGDATA -l /tmp/pg.log -o "-p 5432" start
+          sleep 2
 
-          # Get the port for this cluster
-          PG_PORT=$(pg_lsclusters -h | grep "^${{ matrix.pg_version }}" | awk '{print $3}')
-          echo "PostgreSQL ${{ matrix.pg_version }} running on port $PG_PORT"
-          echo "PG_PORT=$PG_PORT" >> $GITHUB_ENV
+          # Create user and database
+          sudo -u postgres $PG_BIN/createuser -p 5432 -s $USER
+          sudo -u postgres $PG_BIN/createdb -p 5432 testdb
+
           echo "PG_BIN=$PG_BIN" >> $GITHUB_ENV
       - name: Setup PostgreSQL (macOS)
         if: matrix.os == 'macos-latest'
@@ -144,8 +147,8 @@ jobs:
           else
             # Ubuntu: Install to default system paths
             sudo cmake --install build
-            # Ubuntu: use version-specific psql with correct port
-            PSQL="$PG_BIN/psql -p $PG_PORT"
+            # Ubuntu: use version-specific psql
+            PSQL="$PG_BIN/psql -p 5432"
           fi
           # Verify psql is available
           $PSQL --version || echo "psql version check failed"
