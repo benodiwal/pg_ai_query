@@ -20,9 +20,12 @@ extern "C" {
 #include <ai/openai.h>
 #include <nlohmann/json.hpp>
 
+#include "../include/ai_client_factory.hpp"
 #include "../include/config.hpp"
 #include "../include/logger.hpp"
 #include "../include/prompts.hpp"
+#include "../include/provider_selector.hpp"
+#include "../include/spi_connection.hpp"
 #include "../include/utils.hpp"
 
 using namespace pg_ai::logger;
@@ -36,149 +39,35 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
               .error_message = "Natural language query cannot be empty"};
     }
 
-    const auto& cfg = config::ConfigManager::getConfig();
+    auto selection =
+        ProviderSelector::selectProvider(request.api_key, request.provider);
 
-    std::string api_key = request.api_key;
-    std::string api_key_source = "parameter";
-    std::string provider_preference = request.provider;
-
-    config::Provider selected_provider;
-    const config::ProviderConfig* provider_config = nullptr;
-
-    if (provider_preference == "openai") {
-      selected_provider = config::Provider::OPENAI;
-      provider_config =
-          config::ConfigManager::getProviderConfig(config::Provider::OPENAI);
-      logger::Logger::info("Explicit OpenAI provider selection from parameter");
-
-      if (api_key.empty() && provider_config &&
-          !provider_config->api_key.empty()) {
-        api_key = provider_config->api_key;
-        api_key_source = "openai_config";
-        logger::Logger::info("Using OpenAI API key from configuration");
-      }
-    } else if (provider_preference == "anthropic") {
-      selected_provider = config::Provider::ANTHROPIC;
-      provider_config =
-          config::ConfigManager::getProviderConfig(config::Provider::ANTHROPIC);
-      logger::Logger::info(
-          "Explicit Anthropic provider selection from parameter");
-
-      if (api_key.empty() && provider_config &&
-          !provider_config->api_key.empty()) {
-        api_key = provider_config->api_key;
-        api_key_source = "anthropic_config";
-        logger::Logger::info("Using Anthropic API key from configuration");
-      }
-    } else {
-      if (api_key.empty()) {
-        const auto* openai_config =
-            config::ConfigManager::getProviderConfig(config::Provider::OPENAI);
-        if (openai_config && !openai_config->api_key.empty()) {
-          logger::Logger::info(
-              "Auto-selecting OpenAI provider based on configuration");
-          selected_provider = config::Provider::OPENAI;
-          provider_config = openai_config;
-          api_key = openai_config->api_key;
-          api_key_source = "openai_config";
-        } else {
-          const auto* anthropic_config =
-              config::ConfigManager::getProviderConfig(
-                  config::Provider::ANTHROPIC);
-          if (anthropic_config && !anthropic_config->api_key.empty()) {
-            logger::Logger::info(
-                "Auto-selecting Anthropic provider based on configuration");
-            selected_provider = config::Provider::ANTHROPIC;
-            provider_config = anthropic_config;
-            api_key = anthropic_config->api_key;
-            api_key_source = "anthropic_config";
-          } else {
-            logger::Logger::warning("No API key found in config");
-            return {.success = false,
-                    .error_message =
-                        "API key required. Pass as 4th parameter or set OpenAI "
-                        "or Anthropic API key in ~/.pg_ai.config."};
-          }
-        }
-      } else {
-        selected_provider = config::Provider::OPENAI;
-        provider_config =
-            config::ConfigManager::getProviderConfig(config::Provider::OPENAI);
-        logger::Logger::info(
-            "Auto-selecting OpenAI provider (API key provided, no provider "
-            "specified)");
-      }
+    if (!selection.success) {
+      return {.success = false, .error_message = selection.error_message};
     }
 
-    if (api_key.empty()) {
-      std::string provider_name =
-          config::ConfigManager::providerToString(selected_provider);
-      return {.success = false,
-              .error_message = "No API key available for " + provider_name +
-                               " provider. Please provide API key as parameter "
-                               "or configure it in ~/.pg_ai.config."};
-    }
+    auto client_result = AIClientFactory::createClient(
+        selection.provider, selection.api_key, selection.config);
 
-    std::string system_prompt = prompts::SYSTEM_PROMPT;
+    if (!client_result.success) {
+      return {.success = false, .error_message = client_result.error_message};
+    }
 
     std::string prompt = buildPrompt(request);
+    ai::GenerateOptions options(client_result.model_name,
+                                prompts::SYSTEM_PROMPT, prompt);
 
-    config::Provider provider = selected_provider;
-
-    ai::Client client;
-    std::string model_name;
-
-    try {
-      if (provider == config::Provider::OPENAI) {
-        logger::Logger::info("Creating OpenAI client");
-        client = ai::openai::create_client(api_key);
-        model_name =
-            (provider_config && !provider_config->default_model.empty())
-                ? provider_config->default_model
-                : "gpt-4o";
-      } else if (provider == config::Provider::ANTHROPIC) {
-        logger::Logger::info("Creating Anthropic client");
-        client = ai::anthropic::create_client(api_key);
-        model_name =
-            (provider_config && !provider_config->default_model.empty())
-                ? provider_config->default_model
-                : "claude-sonnet-4-5-20250929";
-      } else {
-        logger::Logger::warning("Unknown provider, defaulting to OpenAI");
-        client = ai::openai::create_client(api_key);
-        model_name = "gpt-4o";
-      }
-      logger::Logger::info("Using Provider: " +
-                           config::ConfigManager::providerToString(provider));
-    } catch (const std::exception& e) {
-      logger::Logger::error("Failed to create " +
-                            config::ConfigManager::providerToString(provider) +
-                            " client: " + std::string(e.what()));
-      throw std::runtime_error("Failed to create AI client: " +
-                               std::string(e.what()));
-    }
-
-    ai::GenerateOptions options(model_name, system_prompt, prompt);
-
-    if (provider_config) {
-      options.max_tokens = provider_config->default_max_tokens;
-      options.temperature = provider_config->default_temperature;
-      std::string log_msg = "Using model: " + model_name;
-      if (options.max_tokens.has_value()) {
-        log_msg +=
-            " with max_tokens=" + std::to_string(options.max_tokens.value());
-      }
-      if (options.temperature.has_value()) {
-        log_msg +=
-            ", temperature=" + std::to_string(options.temperature.value());
-      }
-      logger::Logger::info(log_msg);
+    if (selection.config) {
+      options.max_tokens = selection.config->default_max_tokens;
+      options.temperature = selection.config->default_temperature;
+      logModelSettings(client_result.model_name, options.max_tokens,
+                       options.temperature);
     } else {
-      logger::Logger::info("Using model: " + model_name +
+      logger::Logger::info("Using model: " + client_result.model_name +
                            " with default settings");
     }
 
-    auto result = client.generate_text(options);
+    auto result = client_result.client.generate_text(options);
 
     if (!result) {
       return {.success = false,
@@ -191,46 +80,8 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
               .error_message = "Empty response from AI service"};
     }
 
-    nlohmann::json j = extractSQLFromResponse(result.text);
-    std::string sql = j.value("sql", "");
-    std::string explanation = j.value("explanation", "");
+    return parseQueryResponse(result.text);
 
-    if (sql.empty()) {
-      return {
-          .success = true, .explanation = explanation, .generated_query = ""};
-    }
-
-    std::string upper_sql = sql;
-    std::transform(upper_sql.begin(), upper_sql.end(), upper_sql.begin(),
-                   ::toupper);
-    if (upper_sql.find("INFORMATION_SCHEMA") != std::string::npos ||
-        upper_sql.find("PG_CATALOG") != std::string::npos) {
-      return {.success = false,
-              .error_message =
-                  "Generated query accesses system tables. Please query user "
-                  "tables only."};
-    }
-
-    std::vector<std::string> warnings_vec;
-    try {
-      if (j.contains("warnings")) {
-        if (j["warnings"].is_array()) {
-          warnings_vec = j["warnings"].get<std::vector<std::string>>();
-        } else if (j["warnings"].is_string()) {
-          warnings_vec.push_back(j["warnings"].get<std::string>());
-        }
-      }
-    } catch (...) {
-    }
-
-    return {
-        .generated_query = sql,
-        .explanation = explanation,
-        .warnings = warnings_vec,
-        .row_limit_applied = j.value("row_limit_applied", false),
-        .suggested_visualization = j.value("suggested_visualization", "table"),
-        .success = true,
-        .error_message = ""};
   } catch (const std::exception& e) {
     return {.success = false,
             .error_message = std::string("Exception: ") + e.what()};
@@ -294,6 +145,62 @@ nlohmann::json QueryGenerator::extractSQLFromResponse(const std::string& text) {
 
   // Fallback
   return {{"sql", text}, {"explanation", "Raw LLM output (no JSON detected)"}};
+}
+
+QueryResult QueryGenerator::parseQueryResponse(
+    const std::string& response_text) {
+  nlohmann::json j = extractSQLFromResponse(response_text);
+  std::string sql = j.value("sql", "");
+  std::string explanation = j.value("explanation", "");
+
+  if (sql.empty()) {
+    return {.success = true, .explanation = explanation, .generated_query = ""};
+  }
+
+  std::string upper_sql = sql;
+  std::transform(upper_sql.begin(), upper_sql.end(), upper_sql.begin(),
+                 ::toupper);
+  if (upper_sql.find("INFORMATION_SCHEMA") != std::string::npos ||
+      upper_sql.find("PG_CATALOG") != std::string::npos) {
+    return {.success = false,
+            .error_message =
+                "Generated query accesses system tables. Please query user "
+                "tables only."};
+  }
+
+  std::vector<std::string> warnings_vec;
+  try {
+    if (j.contains("warnings")) {
+      if (j["warnings"].is_array()) {
+        warnings_vec = j["warnings"].get<std::vector<std::string>>();
+      } else if (j["warnings"].is_string()) {
+        warnings_vec.push_back(j["warnings"].get<std::string>());
+      }
+    }
+  } catch (...) {
+  }
+
+  return {
+      .generated_query = sql,
+      .explanation = explanation,
+      .warnings = warnings_vec,
+      .row_limit_applied = j.value("row_limit_applied", false),
+      .suggested_visualization = j.value("suggested_visualization", "table"),
+      .success = true,
+      .error_message = ""};
+}
+
+void QueryGenerator::logModelSettings(const std::string& model_name,
+                                      std::optional<int> max_tokens,
+                                      std::optional<double> temperature) {
+  std::string log_msg = "Using model: " + model_name;
+  if (max_tokens.has_value()) {
+    log_msg += " with max_tokens=" + std::to_string(max_tokens.value());
+  }
+  if (temperature.has_value()) {
+    log_msg += ", temperature=" + std::to_string(temperature.value());
+  }
+  logger::Logger::info(log_msg);
 }
 
 DatabaseSchema QueryGenerator::getDatabaseTables() {
@@ -604,8 +511,9 @@ ExplainResult QueryGenerator::explainQuery(const ExplainRequest& request) {
 
     result.query = request.query_text;
 
-    if (SPI_connect() != SPI_OK_CONNECT) {
-      result.error_message = "Failed to connect to SPI";
+    SPIConnection spi_conn;
+    if (!spi_conn) {
+      result.error_message = spi_conn.getErrorMessage();
       return result;
     }
 
@@ -618,7 +526,6 @@ ExplainResult QueryGenerator::explainQuery(const ExplainRequest& request) {
     if (ret < 0) {
       result.error_message = "Failed to execute EXPLAIN query: " +
                              std::string(SPI_result_code_string(ret));
-      SPI_finish();
       return result;
     }
 
@@ -629,13 +536,11 @@ ExplainResult QueryGenerator::explainQuery(const ExplainRequest& request) {
           std::string(SPI_result_code_string(ret)) + "). " +
           "This may indicate the query failed or EXPLAIN ANALYZE is not "
           "supported in this context.";
-      SPI_finish();
       return result;
     }
 
     if (SPI_processed == 0) {
       result.error_message = "No output from EXPLAIN query";
-      SPI_finish();
       return result;
     }
 
@@ -643,114 +548,43 @@ ExplainResult QueryGenerator::explainQuery(const ExplainRequest& request) {
     TupleDesc tupdesc = tuptable->tupdesc;
     HeapTuple tuple = tuptable->vals[0];
 
-    char* explain_output = SPI_getvalue(tuple, tupdesc, 1);
+    SPIValue explain_output(SPI_getvalue(tuple, tupdesc, 1));
     if (!explain_output) {
       result.error_message = "Failed to get EXPLAIN output";
-      SPI_finish();
       return result;
     }
 
-    result.explain_output = std::string(explain_output);
-    SPI_finish();
+    result.explain_output = explain_output.toString();
 
-    const auto& cfg = config::ConfigManager::getConfig();
-    std::string api_key = request.api_key;
-    std::string provider_preference = request.provider;
+    auto selection =
+        ProviderSelector::selectProvider(request.api_key, request.provider);
 
-    config::Provider selected_provider;
-    const config::ProviderConfig* provider_config = nullptr;
-
-    if (provider_preference == "openai") {
-      selected_provider = config::Provider::OPENAI;
-      provider_config =
-          config::ConfigManager::getProviderConfig(config::Provider::OPENAI);
-      if (api_key.empty() && provider_config &&
-          !provider_config->api_key.empty()) {
-        api_key = provider_config->api_key;
-      }
-    } else if (provider_preference == "anthropic") {
-      selected_provider = config::Provider::ANTHROPIC;
-      provider_config =
-          config::ConfigManager::getProviderConfig(config::Provider::ANTHROPIC);
-      if (api_key.empty() && provider_config &&
-          !provider_config->api_key.empty()) {
-        api_key = provider_config->api_key;
-      }
-    } else {
-      if (api_key.empty()) {
-        const auto* openai_config =
-            config::ConfigManager::getProviderConfig(config::Provider::OPENAI);
-        if (openai_config && !openai_config->api_key.empty()) {
-          selected_provider = config::Provider::OPENAI;
-          provider_config = openai_config;
-          api_key = openai_config->api_key;
-        } else {
-          const auto* anthropic_config =
-              config::ConfigManager::getProviderConfig(
-                  config::Provider::ANTHROPIC);
-          if (anthropic_config && !anthropic_config->api_key.empty()) {
-            selected_provider = config::Provider::ANTHROPIC;
-            provider_config = anthropic_config;
-            api_key = anthropic_config->api_key;
-          } else {
-            result.error_message =
-                "API key required. Pass as parameter or configure "
-                "~/.pg_ai.config";
-            return result;
-          }
-        }
-      } else {
-        selected_provider = config::Provider::OPENAI;
-        provider_config =
-            config::ConfigManager::getProviderConfig(config::Provider::OPENAI);
-      }
-    }
-
-    if (api_key.empty()) {
-      result.error_message = "No API key available for provider";
+    if (!selection.success) {
+      result.error_message = selection.error_message;
       return result;
     }
 
-    std::string system_prompt = prompts::EXPLAIN_SYSTEM_PROMPT;
+    auto client_result = AIClientFactory::createClient(
+        selection.provider, selection.api_key, selection.config);
+
+    if (!client_result.success) {
+      result.error_message = client_result.error_message;
+      return result;
+    }
 
     std::string prompt =
         "Please analyze this PostgreSQL EXPLAIN ANALYZE output:\n\nQuery:\n" +
         request.query_text + "\n\nEXPLAIN Output:\n" + result.explain_output;
 
-    ai::Client client;
-    std::string model_name;
+    ai::GenerateOptions options(client_result.model_name,
+                                prompts::EXPLAIN_SYSTEM_PROMPT, prompt);
 
-    try {
-      if (selected_provider == config::Provider::OPENAI) {
-        client = ai::openai::create_client(api_key);
-        model_name =
-            (provider_config && !provider_config->default_model.empty())
-                ? provider_config->default_model
-                : "gpt-4o";
-      } else if (selected_provider == config::Provider::ANTHROPIC) {
-        client = ai::anthropic::create_client(api_key);
-        model_name =
-            (provider_config && !provider_config->default_model.empty())
-                ? provider_config->default_model
-                : "claude-sonnet-4-5-20250929";
-      } else {
-        client = ai::openai::create_client(api_key);
-        model_name = "gpt-4o";
-      }
-    } catch (const std::exception& e) {
-      result.error_message =
-          "Failed to create AI client: " + std::string(e.what());
-      return result;
+    if (selection.config) {
+      options.max_tokens = selection.config->default_max_tokens;
+      options.temperature = selection.config->default_temperature;
     }
 
-    ai::GenerateOptions options(model_name, system_prompt, prompt);
-
-    if (provider_config) {
-      options.max_tokens = provider_config->default_max_tokens;
-      options.temperature = provider_config->default_temperature;
-    }
-
-    auto ai_result = client.generate_text(options);
+    auto ai_result = client_result.client.generate_text(options);
 
     if (!ai_result) {
       result.error_message =
