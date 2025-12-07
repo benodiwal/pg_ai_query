@@ -27,8 +27,12 @@ set(AI_SDK_STATIC_ONLY ON CACHE BOOL "")
 # Add the ai-sdk-cpp submodule
 add_subdirectory(third_party/ai-sdk-cpp)
 
+# Add Gemini client library
+add_subdirectory(third_party/gemini)
+
 # Include our source directories
 include_directories(src)
+include_directories(third_party/gemini/include)
 
 # Source files for the clean implementation
 set(SOURCES
@@ -96,6 +100,7 @@ target_link_libraries(pg_ai_query PRIVATE
     ai-sdk-cpp-core
     ai-sdk-cpp-openai
     ai-sdk-cpp-anthropic
+    gemini-client
     OpenSSL::SSL
     OpenSSL::Crypto
 )

@@ -18,6 +18,7 @@ extern "C" {
 
 #include <ai/anthropic.h>
 #include <ai/openai.h>
+#include <gemini/client.h>
 #include <nlohmann/json.hpp>
 
 #include "../include/config.hpp"
@@ -57,6 +58,18 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
         api_key_source = "openai_config";
         logger::Logger::info("Using OpenAI API key from configuration");
       }
+    } else if (provider_preference == "gemini") {
+      selected_provider = config::Provider::GEMINI;
+      provider_config =
+          config::ConfigManager::getProviderConfig(config::Provider::GEMINI);
+      logger::Logger::info("Explicit Gemini provider selection from parameter");
+
+      if (api_key.empty() && provider_config &&
+          !provider_config->api_key.empty()) {
+        api_key = provider_config->api_key;
+        api_key_source = "gemini_config";
+        logger::Logger::info("Using Gemini API key from configuration");
+      }
     } else if (provider_preference == "anthropic") {
       selected_provider = config::Provider::ANTHROPIC;
       provider_config =
@@ -93,11 +106,24 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
             api_key = anthropic_config->api_key;
             api_key_source = "anthropic_config";
           } else {
-            logger::Logger::warning("No API key found in config");
-            return {.success = false,
-                    .error_message =
-                        "API key required. Pass as 4th parameter or set OpenAI "
-                        "or Anthropic API key in ~/.pg_ai.config."};
+            const auto* gemini_config =
+                config::ConfigManager::getProviderConfig(
+                    config::Provider::GEMINI);
+            if (gemini_config && !gemini_config->api_key.empty()) {
+              logger::Logger::info(
+                  "Auto-selecting Gemini provider based on configuration");
+              selected_provider = config::Provider::GEMINI;
+              provider_config = gemini_config;
+              api_key = gemini_config->api_key;
+              api_key_source = "gemini_config";
+            } else {
+              logger::Logger::warning("No API key found in config");
+              return {
+                  .success = false,
+                  .error_message =
+                      "API key required. Pass as 4th parameter or set OpenAI, "
+                      "Anthropic, or Gemini API key in ~/.pg_ai.config."};
+            }
           }
         }
       } else {
@@ -127,6 +153,41 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
 
     ai::Client client;
     std::string model_name;
+
+    // Handle Gemini separately as it uses a different API
+    if (provider == config::Provider::GEMINI) {
+      logger::Logger::info("Using Gemini provider");
+      model_name = (provider_config && !provider_config->default_model.empty())
+                       ? provider_config->default_model
+                       : "gemini-2.5-flash";
+
+      logger::Logger::info("Using Gemini model: " + model_name);
+
+      gemini::GeminiClient gemini_client(api_key);
+      gemini::GeminiRequest gemini_request{
+          .model = model_name,
+          .system_prompt = system_prompt,
+          .user_prompt = prompt,
+          .temperature =
+              provider_config
+                  ? std::optional<double>(provider_config->default_temperature)
+                  : std::nullopt,
+          .max_tokens =
+              provider_config
+                  ? std::optional<int>(provider_config->default_max_tokens)
+                  : std::nullopt};
+
+      auto gemini_result = gemini_client.generate_text(gemini_request);
+
+      if (!gemini_result.success) {
+        return {.success = false,
+                .error_message =
+                    "Gemini API error: " + gemini_result.error_message};
+      }
+
+      nlohmann::json j = extractSQLFromResponse(gemini_result.text);
+      return buildQueryResultFromJSON(j, gemini_result.text);
+    }
 
     try {
       if (provider == config::Provider::OPENAI) {
@@ -192,45 +253,7 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
     }
 
     nlohmann::json j = extractSQLFromResponse(result.text);
-    std::string sql = j.value("sql", "");
-    std::string explanation = j.value("explanation", "");
-
-    if (sql.empty()) {
-      return {
-          .success = true, .explanation = explanation, .generated_query = ""};
-    }
-
-    std::string upper_sql = sql;
-    std::transform(upper_sql.begin(), upper_sql.end(), upper_sql.begin(),
-                   ::toupper);
-    if (upper_sql.find("INFORMATION_SCHEMA") != std::string::npos ||
-        upper_sql.find("PG_CATALOG") != std::string::npos) {
-      return {.success = false,
-              .error_message =
-                  "Generated query accesses system tables. Please query user "
-                  "tables only."};
-    }
-
-    std::vector<std::string> warnings_vec;
-    try {
-      if (j.contains("warnings")) {
-        if (j["warnings"].is_array()) {
-          warnings_vec = j["warnings"].get<std::vector<std::string>>();
-        } else if (j["warnings"].is_string()) {
-          warnings_vec.push_back(j["warnings"].get<std::string>());
-        }
-      }
-    } catch (...) {
-    }
-
-    return {
-        .generated_query = sql,
-        .explanation = explanation,
-        .warnings = warnings_vec,
-        .row_limit_applied = j.value("row_limit_applied", false),
-        .suggested_visualization = j.value("suggested_visualization", "table"),
-        .success = true,
-        .error_message = ""};
+    return buildQueryResultFromJSON(j, result.text);
   } catch (const std::exception& e) {
     return {.success = false,
             .error_message = std::string("Exception: ") + e.what()};
@@ -294,6 +317,65 @@ nlohmann::json QueryGenerator::extractSQLFromResponse(const std::string& text) {
 
   // Fallback
   return {{"sql", text}, {"explanation", "Raw LLM output (no JSON detected)"}};
+}
+
+bool QueryGenerator::validateSystemTables(const std::string& sql,
+                                          std::string& error_msg) {
+  std::string upper_sql = sql;
+  std::transform(upper_sql.begin(), upper_sql.end(), upper_sql.begin(),
+                 ::toupper);
+
+  if (upper_sql.find("INFORMATION_SCHEMA") != std::string::npos ||
+      upper_sql.find("PG_CATALOG") != std::string::npos) {
+    error_msg =
+        "Generated query accesses system tables. Please query user tables "
+        "only.";
+    return false;
+  }
+  return true;
+}
+
+std::vector<std::string> QueryGenerator::parseWarnings(
+    const nlohmann::json& j) {
+  std::vector<std::string> warnings_vec;
+  try {
+    if (j.contains("warnings")) {
+      if (j["warnings"].is_array()) {
+        warnings_vec = j["warnings"].get<std::vector<std::string>>();
+      } else if (j["warnings"].is_string()) {
+        warnings_vec.push_back(j["warnings"].get<std::string>());
+      }
+    }
+  } catch (...) {
+  }
+  return warnings_vec;
+}
+
+QueryResult QueryGenerator::buildQueryResultFromJSON(
+    const nlohmann::json& j,
+    const std::string& raw_text) {
+  std::string sql = j.value("sql", "");
+  std::string explanation = j.value("explanation", "");
+
+  if (sql.empty()) {
+    return {.success = true,
+            .generated_query = "",
+            .explanation = raw_text,
+            .row_limit_applied = false};
+  }
+
+  std::string error_msg;
+  if (!validateSystemTables(sql, error_msg)) {
+    return {.success = false, .error_message = error_msg};
+  }
+
+  return {
+      .generated_query = sql,
+      .explanation = explanation,
+      .warnings = parseWarnings(j),
+      .row_limit_applied = j.value("row_limit_applied", false),
+      .suggested_visualization = j.value("suggested_visualization", "table"),
+      .success = true};
 }
 
 DatabaseSchema QueryGenerator::getDatabaseTables() {

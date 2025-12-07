@@ -88,6 +88,7 @@ coverage/
 tmp/
 temp/
 .tmp/
+.cache/
 
 # OS generated files
 Thumbs.db

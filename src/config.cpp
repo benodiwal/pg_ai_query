@@ -111,6 +111,23 @@ void ConfigManager::loadEnvConfig() {
     provider_config->api_key = anthropic_key;
     logger::Logger::info("Loaded Anthropic API key from environment variable");
   }
+
+  const char* gemini_key = std::getenv("GEMINI_API_KEY");
+  if (gemini_key) {
+    auto provider_config = getProviderConfigMutable(Provider::GEMINI);
+    if (!provider_config) {
+      ProviderConfig config;
+      config.provider = Provider::GEMINI;
+      config.default_model = "gemini-2.5-flash";
+      config.default_max_tokens = 4096;
+      config.default_temperature = 0.7;
+
+      config_.providers.push_back(config);
+      provider_config = &config_.providers.back();
+    }
+    provider_config->api_key = gemini_key;
+    logger::Logger::info("Loaded Gemini API key from environment variable");
+  }
 }
 
 const Configuration& ConfigManager::getConfig() {
@@ -139,6 +156,8 @@ std::string ConfigManager::providerToString(Provider provider) {
       return "openai";
     case Provider::ANTHROPIC:
       return "anthropic";
+    case Provider::GEMINI:
+      return "gemini";
     default:
       return "unknown";
   }
@@ -152,6 +171,8 @@ Provider ConfigManager::stringToProvider(const std::string& provider_str) {
     return Provider::OPENAI;
   if (lower == "anthropic")
     return Provider::ANTHROPIC;
+  if (lower == "gemini")
+    return Provider::GEMINI;
   return Provider::UNKNOWN;
 }
 
@@ -249,6 +270,27 @@ bool ConfigManager::parseConfig(const std::string& content) {
         config.provider = Provider::ANTHROPIC;
         config.default_model = "claude-sonnet-4-5-20250929";
         config.default_max_tokens = 8192;
+
+        config_.providers.push_back(config);
+        provider_config = &config_.providers.back();
+      }
+
+      if (key == "api_key")
+        provider_config->api_key = value;
+      else if (key == "default_model")
+        provider_config->default_model = value;
+      else if (key == "max_tokens")
+        provider_config->default_max_tokens = std::stoi(value);
+      else if (key == "temperature")
+        provider_config->default_temperature = std::stod(value);
+
+    } else if (current_section == "gemini") {
+      auto provider_config = getProviderConfigMutable(Provider::GEMINI);
+      if (!provider_config) {
+        ProviderConfig config;
+        config.provider = Provider::GEMINI;
+        config.default_model = "gemini-2.5-flash";
+        config.default_max_tokens = 4096;
 
         config_.providers.push_back(config);
         provider_config = &config_.providers.back();

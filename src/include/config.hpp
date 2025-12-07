@@ -6,7 +6,7 @@
 
 namespace pg_ai::config {
 
-enum class Provider { OPENAI, ANTHROPIC, UNKNOWN };
+enum class Provider { OPENAI, ANTHROPIC, GEMINI, UNKNOWN };
 
 struct ProviderConfig {
   Provider provider;
