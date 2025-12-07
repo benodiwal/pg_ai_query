@@ -209,6 +209,7 @@ jobs:
             build-essential \
             cmake \
             libssl-dev \
+            libcurl4-openssl-dev \
             gettext \
             libz-dev \
             postgresql-14 \
