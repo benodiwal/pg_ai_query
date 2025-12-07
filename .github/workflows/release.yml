@@ -117,7 +117,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           build-essential \
-          g++-13 \
           cmake \
           libssl-dev \
           pkg-config \
@@ -125,9 +124,6 @@ jobs:
           libz-dev \
           postgresql-${{ matrix.pg_version }} \
           postgresql-server-dev-${{ matrix.pg_version }}
-        # Use GCC 13 as default (required for C++20 <format> header)
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
 
     - name: Install dependencies (macOS)
       if: startsWith(matrix.os, 'macos')
@@ -141,12 +137,14 @@ jobs:
           export PG_CONFIG=$(brew --prefix postgresql@${{ matrix.pg_version }})/bin/pg_config
           export OPENSSL_ROOT_DIR=$(brew --prefix openssl)
         else
-          export PG_CONFIG=/usr/bin/pg_config
+          # Ubuntu: Use version-specific pg_config path
+          export PG_CONFIG=/usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
         fi
 
         cmake -B build \
               -DCMAKE_BUILD_TYPE=${{env.CMAKE_BUILD_TYPE}} \
               -DCMAKE_INSTALL_PREFIX=/tmp/pg_ai_query_install \
+              -DPG_CONFIG="$PG_CONFIG" \
               -DPACKAGE_VERSION="${{ needs.validate-release.outputs.version }}"
 
     - name: Build extension
@@ -166,7 +164,8 @@ jobs:
         if [[ "${{ matrix.os }}" == macos* ]]; then
           PG_CONFIG=$(brew --prefix postgresql@${{ matrix.pg_version }})/bin/pg_config
         else
-          PG_CONFIG=/usr/bin/pg_config
+          # Ubuntu: Use version-specific pg_config path
+          PG_CONFIG=/usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
         fi
 
         SHAREDIR=$($PG_CONFIG --sharedir)

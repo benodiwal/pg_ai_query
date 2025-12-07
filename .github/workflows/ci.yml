@@ -67,7 +67,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
-            g++-13 \
             cmake \
             libssl-dev \
             pkg-config \
@@ -75,9 +74,6 @@ jobs:
             libz-dev \
             postgresql-${{ matrix.pg_version }} \
             postgresql-server-dev-${{ matrix.pg_version }}
-          # Use GCC 13 as default (required for C++20 <format> header)
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
       - name: Install dependencies (macOS)
         if: matrix.os == 'macos-latest'
         run: |
@@ -112,8 +108,10 @@ jobs:
                   -DPG_CONFIG="$PG_CONFIG" \
                   -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT_DIR"
           else
+            # Ubuntu: Use version-specific pg_config path
+            PG_CONFIG=/usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
             cmake -B build -DCMAKE_BUILD_TYPE=${{env.CMAKE_BUILD_TYPE}} \
-                  -DPG_CONFIG=/usr/bin/pg_config
+                  -DPG_CONFIG="$PG_CONFIG"
           fi
       - name: Build extension
         run: |
@@ -136,8 +134,12 @@ jobs:
           # Verify psql is available
           which psql || echo "psql not found in PATH"
           psql --version || echo "psql version check failed"
-          # Get paths from pg_config
-          PG_CONFIG=${PG_CONFIG:-/usr/bin/pg_config}
+          # Get paths from pg_config (use version-specific path for Ubuntu)
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            PG_CONFIG=${PG_CONFIG:-$(brew --prefix postgresql@${{ matrix.pg_version }})/bin/pg_config}
+          else
+            PG_CONFIG=/usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
+          fi
           PG_PKGLIB=$($PG_CONFIG --pkglibdir)
           PG_LIBDIR=$($PG_CONFIG --libdir)
           PG_SHAREDIR=$($PG_CONFIG --sharedir)
@@ -199,7 +201,7 @@ jobs:
           retention-days: 7
   static-analysis:
     name: Static Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -224,7 +226,7 @@ jobs:
       - name: Configure CMake with static analysis
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug \
-                -DPG_CONFIG=/usr/bin/pg_config \
+                -DPG_CONFIG=/usr/lib/postgresql/14/bin/pg_config \
                 -DCMAKE_CXX_CPPCHECK="cppcheck;--enable=all;--suppress=missingIncludeSystem" \
                 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       - name: Run static analysis

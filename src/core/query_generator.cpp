@@ -95,8 +95,8 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
           .row_limit_applied = false,
           .suggested_visualization = "",
           .success = false,
-          .error_message = "AI API error: " +
-                           utils::formatAPIError(result.error_message())};
+          .error_message =
+              "AI API error: " + utils::formatAPIError(result.error_message())};
     }
 
     if (result.text.empty()) {
