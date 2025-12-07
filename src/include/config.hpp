@@ -13,9 +13,9 @@ constexpr const char* PROVIDER_ANTHROPIC = "anthropic";
 constexpr const char* PROVIDER_AUTO = "auto";
 constexpr const char* PROVIDER_UNKNOWN = "unknown";
 
-// Environment variable names
-constexpr const char* ENV_OPENAI_API_KEY = "OPENAI_API_KEY";
-constexpr const char* ENV_ANTHROPIC_API_KEY = "ANTHROPIC_API_KEY";
+// Default API endpoints
+constexpr const char* DEFAULT_OPENAI_ENDPOINT = "https://api.openai.com";
+constexpr const char* DEFAULT_ANTHROPIC_ENDPOINT = "https://api.anthropic.com";
 
 // Config file path
 constexpr const char* CONFIG_FILE_NAME = ".pg_ai.config";
@@ -46,12 +46,14 @@ struct ProviderConfig {
   std::string default_model;
   int default_max_tokens;
   double default_temperature;
+  std::string api_endpoint;  // Custom API endpoint URL (optional)
 
   // Default constructor
   ProviderConfig()
       : provider(Provider::UNKNOWN),
         default_max_tokens(4096),
-        default_temperature(0.7) {}
+        default_temperature(0.7),
+        api_endpoint() {}
 };
 
 struct Configuration {

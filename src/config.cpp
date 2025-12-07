@@ -78,39 +78,8 @@ bool ConfigManager::loadConfig(const std::string& config_path) {
 }
 
 void ConfigManager::loadEnvConfig() {
-  const char* openai_key = std::getenv(constants::ENV_OPENAI_API_KEY);
-  if (openai_key) {
-    auto provider_config = getProviderConfigMutable(Provider::OPENAI);
-    if (!provider_config) {
-      ProviderConfig config;
-      config.provider = Provider::OPENAI;
-      config.default_model = constants::DEFAULT_OPENAI_MODEL;
-      config.default_max_tokens = constants::DEFAULT_OPENAI_MAX_TOKENS;
-      config.default_temperature = constants::DEFAULT_TEMPERATURE;
-
-      config_.providers.push_back(config);
-      provider_config = &config_.providers.back();
-    }
-    provider_config->api_key = openai_key;
-    logger::Logger::info("Loaded OpenAI API key from environment variable");
-  }
-
-  const char* anthropic_key = std::getenv(constants::ENV_ANTHROPIC_API_KEY);
-  if (anthropic_key) {
-    auto provider_config = getProviderConfigMutable(Provider::ANTHROPIC);
-    if (!provider_config) {
-      ProviderConfig config;
-      config.provider = Provider::ANTHROPIC;
-      config.default_model = constants::DEFAULT_ANTHROPIC_MODEL;
-      config.default_max_tokens = constants::DEFAULT_ANTHROPIC_MAX_TOKENS;
-      config.default_temperature = constants::DEFAULT_TEMPERATURE;
-
-      config_.providers.push_back(config);
-      provider_config = &config_.providers.back();
-    }
-    provider_config->api_key = anthropic_key;
-    logger::Logger::info("Loaded Anthropic API key from environment variable");
-  }
+  // NOTE for developers: Environment variable loading is disabled for now - all
+  // config via ~/.pg_ai.config
 }
 
 const Configuration& ConfigManager::getConfig() {
@@ -160,25 +129,22 @@ bool ConfigManager::parseConfig(const std::string& content) {
   std::string line;
   std::string current_section;
 
-  config_ = Configuration();  // Reset to defaults
+  config_ = Configuration();
 
   while (std::getline(stream, line)) {
     // Remove leading/trailing whitespace
     line.erase(0, line.find_first_not_of(" \t"));
     line.erase(line.find_last_not_of(" \t") + 1);
 
-    // Skip empty lines and comments
     if (line.empty() || line[0] == '#') {
       continue;
     }
 
-    // Handle sections
     if (line[0] == '[' && line.back() == ']') {
       current_section = line.substr(1, line.length() - 2);
       continue;
     }
 
-    // Parse key-value pairs
     size_t eq_pos = line.find('=');
     if (eq_pos == std::string::npos) {
       continue;
@@ -187,18 +153,15 @@ bool ConfigManager::parseConfig(const std::string& content) {
     std::string key = line.substr(0, eq_pos);
     std::string value = line.substr(eq_pos + 1);
 
-    // Remove whitespace around key and value
     key.erase(0, key.find_first_not_of(" \t"));
     key.erase(key.find_last_not_of(" \t") + 1);
     value.erase(0, value.find_first_not_of(" \t"));
     value.erase(value.find_last_not_of(" \t") + 1);
 
-    // Remove quotes from value if present
     if (value.length() >= 2 && value[0] == '"' && value.back() == '"') {
       value = value.substr(1, value.length() - 2);
     }
 
-    // Parse based on section
     if (current_section == constants::SECTION_GENERAL) {
       if (key == "log_level")
         config_.log_level = value;
@@ -241,6 +204,8 @@ bool ConfigManager::parseConfig(const std::string& content) {
         provider_config->default_max_tokens = std::stoi(value);
       else if (key == "temperature")
         provider_config->default_temperature = std::stod(value);
+      else if (key == "api_endpoint")
+        provider_config->api_endpoint = value;
 
     } else if (current_section == constants::SECTION_ANTHROPIC) {
       auto provider_config = getProviderConfigMutable(Provider::ANTHROPIC);
@@ -262,10 +227,11 @@ bool ConfigManager::parseConfig(const std::string& content) {
         provider_config->default_max_tokens = std::stoi(value);
       else if (key == "temperature")
         provider_config->default_temperature = std::stod(value);
+      else if (key == "api_endpoint")
+        provider_config->api_endpoint = value;
     }
   }
 
-  // Set default provider if specified
   if (!config_.providers.empty()) {
     config_.default_provider = config_.providers[0];
   }
@@ -288,7 +254,6 @@ std::string ConfigManager::getHomeDirectory() {
     return std::string(home);
   }
 
-  // Fallback: try to get from getpwuid
   const char* user = std::getenv("USER");
   if (user) {
     return std::string("/home/") + user;
