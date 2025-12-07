@@ -35,22 +35,40 @@ namespace pg_ai {
 QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
   try {
     if (request.natural_language.empty()) {
-      return {.success = false,
-              .error_message = "Natural language query cannot be empty"};
+      return QueryResult{
+          .generated_query = "",
+          .explanation = "",
+          .warnings = {},
+          .row_limit_applied = false,
+          .suggested_visualization = "",
+          .success = false,
+          .error_message = "Natural language query cannot be empty"};
     }
 
     auto selection =
         ProviderSelector::selectProvider(request.api_key, request.provider);
 
     if (!selection.success) {
-      return {.success = false, .error_message = selection.error_message};
+      return QueryResult{.generated_query = "",
+                         .explanation = "",
+                         .warnings = {},
+                         .row_limit_applied = false,
+                         .suggested_visualization = "",
+                         .success = false,
+                         .error_message = selection.error_message};
     }
 
     auto client_result = AIClientFactory::createClient(
         selection.provider, selection.api_key, selection.config);
 
     if (!client_result.success) {
-      return {.success = false, .error_message = client_result.error_message};
+      return QueryResult{.generated_query = "",
+                         .explanation = "",
+                         .warnings = {},
+                         .row_limit_applied = false,
+                         .suggested_visualization = "",
+                         .success = false,
+                         .error_message = client_result.error_message};
     }
 
     std::string prompt = buildPrompt(request);
@@ -70,21 +88,37 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
     auto result = client_result.client.generate_text(options);
 
     if (!result) {
-      return {.success = false,
-              .error_message = "AI API error: " +
-                               utils::formatAPIError(result.error_message())};
+      return QueryResult{
+          .generated_query = "",
+          .explanation = "",
+          .warnings = {},
+          .row_limit_applied = false,
+          .suggested_visualization = "",
+          .success = false,
+          .error_message = "AI API error: " +
+                           utils::formatAPIError(result.error_message())};
     }
 
     if (result.text.empty()) {
-      return {.success = false,
-              .error_message = "Empty response from AI service"};
+      return QueryResult{.generated_query = "",
+                         .explanation = "",
+                         .warnings = {},
+                         .row_limit_applied = false,
+                         .suggested_visualization = "",
+                         .success = false,
+                         .error_message = "Empty response from AI service"};
     }
 
     return parseQueryResponse(result.text);
 
   } catch (const std::exception& e) {
-    return {.success = false,
-            .error_message = std::string("Exception: ") + e.what()};
+    return QueryResult{.generated_query = "",
+                       .explanation = "",
+                       .warnings = {},
+                       .row_limit_applied = false,
+                       .suggested_visualization = "",
+                       .success = false,
+                       .error_message = std::string("Exception: ") + e.what()};
   }
 }
 
@@ -193,11 +227,23 @@ QueryResult QueryGenerator::parseQueryResponse(
   }
 
   if (has_error_indicator) {
-    return {.success = false, .error_message = explanation};
+    return QueryResult{.generated_query = "",
+                       .explanation = explanation,
+                       .warnings = warnings_vec,
+                       .row_limit_applied = false,
+                       .suggested_visualization = "",
+                       .success = false,
+                       .error_message = explanation};
   }
 
   if (sql.empty()) {
-    return {.success = true, .explanation = explanation, .generated_query = ""};
+    return QueryResult{.generated_query = "",
+                       .explanation = explanation,
+                       .warnings = warnings_vec,
+                       .row_limit_applied = false,
+                       .suggested_visualization = "",
+                       .success = true,
+                       .error_message = ""};
   }
 
   std::string upper_sql = sql;
@@ -205,13 +251,19 @@ QueryResult QueryGenerator::parseQueryResponse(
                  ::toupper);
   if (upper_sql.find("INFORMATION_SCHEMA") != std::string::npos ||
       upper_sql.find("PG_CATALOG") != std::string::npos) {
-    return {.success = false,
-            .error_message =
-                "Generated query accesses system tables. Please query user "
-                "tables only."};
+    return QueryResult{
+        .generated_query = "",
+        .explanation = "",
+        .warnings = {},
+        .row_limit_applied = false,
+        .suggested_visualization = "",
+        .success = false,
+        .error_message =
+            "Generated query accesses system tables. Please query user "
+            "tables only."};
   }
 
-  return {
+  return QueryResult{
       .generated_query = sql,
       .explanation = explanation,
       .warnings = warnings_vec,

@@ -83,21 +83,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             pg_version: "14"
-            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-20.04-pg14"
-          - os: ubuntu-22.04
+            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-24.04-pg14"
+          - os: ubuntu-24.04
             pg_version: "15"
-            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-22.04-pg15"
-          - os: ubuntu-22.04
+            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-24.04-pg15"
+          - os: ubuntu-24.04
             pg_version: "16"
-            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-22.04-pg16"
-          - os: macos-12
+            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-24.04-pg16"
+          - os: macos-latest
             pg_version: "14"
-            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-12-pg14"
-          - os: macos-13
+            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-latest-pg14"
+          - os: macos-latest
             pg_version: "15"
-            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-13-pg15"
+            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-latest-pg15"
+          - os: macos-latest
+            pg_version: "16"
+            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-latest-pg16"
 
     steps:
     - name: Checkout code
@@ -114,11 +117,17 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           build-essential \
+          g++-13 \
           cmake \
           libssl-dev \
           pkg-config \
+          gettext \
+          libz-dev \
           postgresql-${{ matrix.pg_version }} \
           postgresql-server-dev-${{ matrix.pg_version }}
+        # Use GCC 13 as default (required for C++20 <format> header)
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
 
     - name: Install dependencies (macOS)
       if: startsWith(matrix.os, 'macos')
@@ -322,11 +331,12 @@ jobs:
 
         | Platform | PostgreSQL | File |
         |----------|------------|------|
-        | Ubuntu 20.04 | 14 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-20.04-pg14.tar.gz\` |
-        | Ubuntu 22.04 | 15 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-22.04-pg15.tar.gz\` |
-        | Ubuntu 22.04 | 16 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-22.04-pg16.tar.gz\` |
-        | macOS 12 | 14 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-12-pg14.tar.gz\` |
-        | macOS 13 | 15 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-13-pg15.tar.gz\` |
+        | Ubuntu 24.04 | 14 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-24.04-pg14.tar.gz\` |
+        | Ubuntu 24.04 | 15 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-24.04-pg15.tar.gz\` |
+        | Ubuntu 24.04 | 16 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-24.04-pg16.tar.gz\` |
+        | macOS (latest) | 14 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-latest-pg14.tar.gz\` |
+        | macOS (latest) | 15 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-latest-pg15.tar.gz\` |
+        | macOS (latest) | 16 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-latest-pg16.tar.gz\` |
 
         ## Documentation
 
@@ -386,11 +396,12 @@ jobs:
     strategy:
       matrix:
         artifact:
-          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-20.04-pg14"
-          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-22.04-pg15"
-          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-22.04-pg16"
-          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-12-pg14"
-          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-13-pg15"
+          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-24.04-pg14"
+          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-24.04-pg15"
+          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-24.04-pg16"
+          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-latest-pg14"
+          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-latest-pg15"
+          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-latest-pg16"
 
     steps:
     - name: Download artifact
@@ -421,7 +432,7 @@ jobs:
         echo "Release Statistics:"
         echo "  - Version: ${{ needs.validate-release.outputs.version }}"
         echo "  - Pre-release: ${{ needs.validate-release.outputs.is_prerelease }}"
-        echo "  - Platforms: 5 supported platforms"
+        echo "  - Platforms: 6 supported platforms"
         echo "  - Documentation: Updated and deployed"
 
     - name: Create release announcement
