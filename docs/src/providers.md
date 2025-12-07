@@ -305,13 +305,75 @@ SELECT generate_query('analyze relationships across all tables', null, 'anthropi
    - Good for production environments with compliance needs
    - Transparent about limitations and assumptions
 
+## Custom API Endpoints
+
+The extension supports custom API endpoints, allowing you to use OpenAI-compatible or Anthropic-compatible APIs. This is useful for:
+
+- **Local LLMs**: Run models locally using Ollama, vLLM, or LocalAI
+- **Privacy**: Keep all data on-premises without sending to external APIs
+- **Cost optimization**: Use self-hosted models or alternative providers
+- **Enterprise proxies**: Route requests through custom gateways
+
+### Supported OpenAI-Compatible APIs
+
+Any API that implements the OpenAI Chat Completions endpoint (`/v1/chat/completions`) can be used.
+
+**Important:** The SDK automatically appends `/v1/chat/completions` to your base URL, so do **not** include `/v1` in your endpoint configuration.
+
+| Provider | Correct `api_endpoint` | Notes |
+|----------|------------------------|-------|
+| **Ollama** | `http://localhost:11434` | Local model inference |
+| **vLLM** | `http://localhost:8000` | High-performance inference |
+| **LiteLLM** | `http://localhost:8000` | Unified API proxy |
+| **OpenRouter** | `https://openrouter.ai/api` | Multiple model providers |
+| **Together AI** | `https://api.together.xyz` | Hosted open-source models |
+| **Azure OpenAI** | `https://YOUR_RESOURCE.openai.azure.com` | Microsoft Azure hosting |
+| **LocalAI** | `http://localhost:8080` | Local model inference |
+
+### Configuration Examples
+
+#### Using Ollama (Local)
+
+```ini
+[openai]
+api_key = "ollama"  # Ollama doesn't require a real key
+api_endpoint = "http://localhost:11434"
+default_model = "llama3.2"  # Or any model you have pulled
+```
+
+#### Using LiteLLM Proxy
+
+```ini
+[openai]
+api_key = "your-litellm-key"
+api_endpoint = "http://localhost:8000"
+default_model = "gpt-4o"  # LiteLLM handles routing
+```
+
+#### Using OpenRouter
+
+```ini
+[openai]
+api_key = "sk-or-v1-..."  # Your OpenRouter API key
+api_endpoint = "https://openrouter.ai/api"
+default_model = "openai/gpt-4o"  # Use provider/model format
+```
+
+### Important Considerations
+
+1. **API Compatibility**: The custom endpoint must implement the same API format as the original provider
+2. **Model Names**: Different providers may use different model naming conventions
+3. **Authentication**: Some local servers don't require API keys; use a placeholder value
+4. **Network Security**: Local endpoints typically use HTTP; ensure your network is secure
+5. **Performance**: Local models may have different latency and quality characteristics
+
 ## Future Provider Support
 
 The extension is designed to easily support additional providers:
 
 - **Google (Gemini)**: Planned support
 - **Azure OpenAI**: Possible future integration
-- **Local Models**: Exploring support for self-hosted models
+- **Local Models**: Full support via custom endpoints (see above)
 
 ## Monitoring Provider Performance
 
