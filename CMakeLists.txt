@@ -29,6 +29,7 @@ add_subdirectory(third_party/ai-sdk-cpp)
 
 # Include our source directories
 include_directories(src)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/ai-sdk-cpp/include)
 
 # Source files for the clean implementation
 set(SOURCES
@@ -36,6 +37,9 @@ set(SOURCES
     src/core/query_generator.cpp
     src/core/response_formatter.cpp
     src/core/logger.cpp
+    src/core/provider_selector.cpp
+    src/core/ai_client_factory.cpp
+    src/core/spi_connection.cpp
     src/utils.cpp
     src/prompts.cpp
     src/config.cpp

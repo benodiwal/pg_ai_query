@@ -6,6 +6,38 @@
 
 namespace pg_ai::config {
 
+namespace constants {
+// Provider name strings
+constexpr const char* PROVIDER_OPENAI = "openai";
+constexpr const char* PROVIDER_ANTHROPIC = "anthropic";
+constexpr const char* PROVIDER_AUTO = "auto";
+constexpr const char* PROVIDER_UNKNOWN = "unknown";
+
+// Environment variable names
+constexpr const char* ENV_OPENAI_API_KEY = "OPENAI_API_KEY";
+constexpr const char* ENV_ANTHROPIC_API_KEY = "ANTHROPIC_API_KEY";
+
+// Config file path
+constexpr const char* CONFIG_FILE_NAME = ".pg_ai.config";
+
+// Config section names
+constexpr const char* SECTION_GENERAL = "general";
+constexpr const char* SECTION_QUERY = "query";
+constexpr const char* SECTION_RESPONSE = "response";
+constexpr const char* SECTION_OPENAI = "openai";
+constexpr const char* SECTION_ANTHROPIC = "anthropic";
+
+// Default model names
+constexpr const char* DEFAULT_OPENAI_MODEL = "gpt-4o";
+constexpr const char* DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5-20250929";
+
+// Default token limits
+constexpr int DEFAULT_OPENAI_MAX_TOKENS = 16384;
+constexpr int DEFAULT_ANTHROPIC_MAX_TOKENS = 8192;
+constexpr int DEFAULT_MAX_TOKENS = 4096;
+constexpr double DEFAULT_TEMPERATURE = 0.7;
+}  // namespace constants
+
 enum class Provider { OPENAI, ANTHROPIC, UNKNOWN };
 
 struct ProviderConfig {
