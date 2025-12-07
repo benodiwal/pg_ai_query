@@ -153,6 +153,49 @@ QueryResult QueryGenerator::parseQueryResponse(
   std::string sql = j.value("sql", "");
   std::string explanation = j.value("explanation", "");
 
+  std::vector<std::string> warnings_vec;
+  try {
+    if (j.contains("warnings")) {
+      if (j["warnings"].is_array()) {
+        warnings_vec = j["warnings"].get<std::vector<std::string>>();
+      } else if (j["warnings"].is_string()) {
+        warnings_vec.push_back(j["warnings"].get<std::string>());
+      }
+    }
+  } catch (...) {
+  }
+
+  std::string lower_explanation = explanation;
+  std::transform(lower_explanation.begin(), lower_explanation.end(),
+                 lower_explanation.begin(), ::tolower);
+
+  bool has_error_indicator =
+      lower_explanation.find("cannot generate query") != std::string::npos ||
+      lower_explanation.find("cannot create query") != std::string::npos ||
+      lower_explanation.find("unable to generate") != std::string::npos ||
+      lower_explanation.find("does not exist") != std::string::npos ||
+      lower_explanation.find("do not exist") != std::string::npos ||
+      lower_explanation.find("table not found") != std::string::npos ||
+      lower_explanation.find("column not found") != std::string::npos ||
+      lower_explanation.find("no such table") != std::string::npos ||
+      lower_explanation.find("no such column") != std::string::npos;
+
+  for (const auto& warning : warnings_vec) {
+    std::string lower_warning = warning;
+    std::transform(lower_warning.begin(), lower_warning.end(),
+                   lower_warning.begin(), ::tolower);
+    if (lower_warning.find("error:") != std::string::npos ||
+        lower_warning.find("does not exist") != std::string::npos ||
+        lower_warning.find("do not exist") != std::string::npos) {
+      has_error_indicator = true;
+      break;
+    }
+  }
+
+  if (has_error_indicator) {
+    return {.success = false, .error_message = explanation};
+  }
+
   if (sql.empty()) {
     return {.success = true, .explanation = explanation, .generated_query = ""};
   }
@@ -166,18 +209,6 @@ QueryResult QueryGenerator::parseQueryResponse(
             .error_message =
                 "Generated query accesses system tables. Please query user "
                 "tables only."};
-  }
-
-  std::vector<std::string> warnings_vec;
-  try {
-    if (j.contains("warnings")) {
-      if (j["warnings"].is_array()) {
-        warnings_vec = j["warnings"].get<std::vector<std::string>>();
-      } else if (j["warnings"].is_string()) {
-        warnings_vec.push_back(j["warnings"].get<std::string>());
-      }
-    }
-  } catch (...) {
   }
 
   return {
