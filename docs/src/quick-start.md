@@ -176,6 +176,7 @@ If you have multiple providers configured:
 -- Use specific provider
 SELECT generate_query('show recent orders', null, 'openai');
 SELECT generate_query('show recent orders', null, 'anthropic');
+SELECT generate_query('show recent orders', null, 'gemini');
 ```
 
 ### Complex Queries

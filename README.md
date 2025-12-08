@@ -1,6 +1,6 @@
 # PostgreSQL AI Query Extension
 
-A powerful PostgreSQL extension that generates SQL queries from natural language using state-of-the-art AI models from OpenAI and Anthropic.
+A powerful PostgreSQL extension that generates SQL queries from natural language using state-of-the-art AI models from OpenAI, Anthropic, and Google Gemini.
 
 ## Features
 
@@ -31,7 +31,7 @@ You can use any valid OpenAI model name. Here is a comparison of common models:
     - PostgreSQL 14+ with development headers
     - CMake 3.16+
     - C++20 compatible compiler
-    - API key from OpenAI or Anthropic
+    - API key from OpenAI, Anthropic, or Google (Gemini)
 
 2.  **Build and Install**:
     ```bash
@@ -73,6 +73,10 @@ default_model = "gpt-4o"
 [anthropic]
 api_key = "your-anthropic-api-key-here"
 default_model = "claude-3-5-sonnet-20241022"
+
+[gemini]
+api_key = "your-google-api-key-here"
+default_model = "gemini-2.5-flash"
 ```
 
 ### Environment Variables
@@ -81,11 +85,13 @@ You can also configure API keys using environment variables. These will override
 
 - `OPENAI_API_KEY`: API key for OpenAI
 - `ANTHROPIC_API_KEY`: API key for Anthropic
+- `GOOGLE_API_KEY`: API key for Google Gemini
 
 Example:
 ```bash
 export OPENAI_API_KEY="sk-..."
 export ANTHROPIC_API_KEY="sk-ant-..."
+export GOOGLE_API_KEY="AIza..."
 ```
 
 **Available Anthropic Models:**
@@ -97,6 +103,16 @@ You can use any valid Anthropic model name. Here is a comparison of common model
 | `claude-4.5-opus` | Next Gen | High | Ultimate reasoning and capabilities | High cost, availability limited |
 | `claude-sonnet-4-5-20250929` | Flagship | Moderate | Top-tier reasoning and coding | - |
 | `claude-3-haiku-20240307` | Economy | Low | Extremely fast and cheap | Lower reasoning capability |
+
+**Available Google Gemini Models:**
+
+You can use any valid Google Gemini model name. Here is a comparison of common models:
+
+| Model Name | Type | Cost | Pros | Cons |
+| :--- | :--- | :--- | :--- | :--- |
+| `gemini-2.5-pro` | Flagship | Moderate | Best overall performance, multimodal | Higher cost |
+| `gemini-2.5-flash` | Economy | Low | Very fast, cost-effective | Less capable than Pro |
+| `gemini-2.0-flash` | Fast | Low | Quick responses, good for simple tasks | Previous generation |
 
 ### Basic Usage
 
@@ -171,6 +187,13 @@ SELECT explain_query(
     'SELECT * FROM products WHERE price > 100 ORDER BY price DESC LIMIT 10',
     'your-api-key-here',
     'anthropic'
+);
+
+-- Use with Gemini
+SELECT explain_query(
+    'SELECT * FROM users WHERE created_at > NOW() - INTERVAL ''30 days''',
+    'your-api-key-here',
+    'gemini'
 );
 ```
 

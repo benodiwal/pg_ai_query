@@ -32,6 +32,21 @@ The extension supports any valid Anthropic model name. The following are common 
 |-------|-------------|----------------|----------|
 | `claude-sonnet-4-5-20250929` | Latest Claude 3.5 Sonnet | 200,000 tokens | Complex analysis, detailed reasoning |
 
+### Google Gemini
+
+**Overview**: Google provides the Gemini family of models, known for multimodal capabilities and strong reasoning.
+
+**API Endpoint**: `https://generativelanguage.googleapis.com/v1beta/`
+
+**Available Models**:
+The extension supports any valid Gemini model name. The following are common examples:
+
+| Model | Description | Context Length | Best For |
+|-------|-------------|----------------|----------|
+| `gemini-2.5-pro` | Latest Gemini Pro model | 1,000,000 tokens | Complex queries, best accuracy |
+| `gemini-2.5-flash` | Fast and efficient model | 1,000,000 tokens | Quick responses, cost-effective |
+| `gemini-2.0-flash` | Previous generation flash | 1,000,000 tokens | Simple queries, fast responses |
+
 ## Provider Selection
 
 ### Automatic Provider Selection
@@ -40,7 +55,7 @@ When you use `provider = 'auto'` (the default), the extension selects a provider
 
 1. **Configuration Priority**: First configured provider with a valid API key
 2. **Fallback Logic**: If primary provider fails, tries others
-3. **Default Order**: OpenAI → Anthropic
+3. **Default Order**: OpenAI → Anthropic → Gemini
 
 ```sql
 -- Uses automatic provider selection
@@ -57,6 +72,9 @@ SELECT generate_query('show users', null, 'openai');
 
 -- Force Anthropic
 SELECT generate_query('show users', null, 'anthropic');
+
+-- Force Gemini
+SELECT generate_query('show users', null, 'gemini');
 ```
 
 ### Configuration-Based Selection
@@ -74,19 +92,23 @@ default_model = "gpt-4o"
 [anthropic]
 api_key = "your-anthropic-key"
 default_model = "claude-sonnet-4-5-20250929"
+
+[gemini]
+api_key = "your-google-key"
+default_model = "gemini-2.5-flash"
 ```
 
 ## Provider Comparison
 
 ### Performance Characteristics
 
-| Aspect | OpenAI GPT-4o | OpenAI GPT-3.5 | Anthropic Claude |
-|--------|---------------|-----------------|------------------|
-| **Response Time** | 2-5 seconds | 1-2 seconds | 3-6 seconds |
-| **Accuracy** | Excellent | Good | Excellent |
-| **Complex Queries** | Excellent | Fair | Excellent |
-| **SQL Knowledge** | Excellent | Good | Very Good |
-| **Cost** | High | Low | Medium |
+| Aspect | OpenAI GPT-4o | OpenAI GPT-3.5 | Anthropic Claude | Google Gemini |
+|--------|---------------|-----------------|------------------|---------------|
+| **Response Time** | 2-5 seconds | 1-2 seconds | 3-6 seconds | 1-3 seconds |
+| **Accuracy** | Excellent | Good | Excellent | Excellent |
+| **Complex Queries** | Excellent | Fair | Excellent | Very Good |
+| **SQL Knowledge** | Excellent | Good | Very Good | Very Good |
+| **Cost** | High | Low | Medium | Low-Medium |
 
 ### Use Case Recommendations
 
@@ -137,6 +159,16 @@ SELECT generate_query('generate daily sales report', null, 'openai');
 
 **Why**: Good balance of accuracy, speed, and cost for production workloads.
 
+#### For Cost-Effective Operations
+**Recommended**: Google Gemini Flash
+```sql
+-- Cost-effective queries with good quality
+SELECT generate_query('show recent user activity', null, 'gemini');
+-- Configuration: default_model = "gemini-2.5-flash"
+```
+
+**Why**: Excellent cost-to-performance ratio, fast responses, large context window.
+
 ## Model-Specific Configurations
 
 ### OpenAI Configuration
@@ -179,6 +211,26 @@ default_model = "claude-sonnet-4-5-20250929"
 3. Generate an API key
 4. Add to configuration file
 
+### Google Gemini Configuration
+
+```ini
+[gemini]
+api_key = "AIzaSy-your-api-key-here"
+default_model = "gemini-2.5-flash"
+
+# Optional: Model-specific settings (future feature)
+# gemini_temperature = 0.7
+# gemini_max_tokens = 8192
+```
+
+**API Key Format**: Must start with `AIzaSy`
+
+**Getting Started**:
+1. Visit [aistudio.google.com](https://aistudio.google.com)
+2. Create or sign in to your Google account
+3. Generate an API key
+4. Add to configuration file
+
 ## Cost Considerations
 
 ### OpenAI Pricing (Approximate)
@@ -194,6 +246,14 @@ default_model = "claude-sonnet-4-5-20250929"
 | Model | Input Cost | Output Cost | Typical Query Cost |
 |-------|------------|-------------|-------------------|
 | Claude 3.5 Sonnet | $3.00/1M tokens | $15.00/1M tokens | $0.03-0.06 |
+
+### Google Gemini Pricing (Approximate)
+
+| Model | Input Cost | Output Cost | Typical Query Cost |
+|-------|------------|-------------|-------------------|
+| Gemini 2.5 Pro | $1.25/1M tokens | $5.00/1M tokens | $0.01-0.03 |
+| Gemini 2.5 Flash | $0.075/1M tokens | $0.30/1M tokens | $0.001-0.005 |
+| Gemini 2.0 Flash | $0.10/1M tokens | $0.40/1M tokens | $0.001-0.005 |
 
 *Prices are approximate and change frequently. Check provider websites for current pricing.*
 
@@ -263,6 +323,9 @@ Each provider has different rate limits:
 **Anthropic**:
 - Claude: 1,000 requests/minute (varies by tier)
 
+**Google Gemini**:
+- Gemini: 1,500 requests/minute (varies by tier)
+
 ### Context Window Optimization
 
 For large schemas, consider context window sizes:
@@ -271,13 +334,15 @@ For large schemas, consider context window sizes:
 -- Large schema? Use models with larger context windows
 -- GPT-4o: 128k tokens
 -- Claude 3.5: 200k tokens
-SELECT generate_query('analyze relationships across all tables', null, 'anthropic');
+-- Gemini 2.5: 1M tokens
+SELECT generate_query('analyze relationships across all tables', null, 'gemini');
 ```
 
 ### Regional Considerations
 
 **OpenAI**: Global availability with regional data centers
 **Anthropic**: Primary US-based with expanding regional support
+**Google Gemini**: Global availability through Google Cloud infrastructure
 
 ## Provider-Specific Best Practices
 
@@ -304,6 +369,18 @@ SELECT generate_query('analyze relationships across all tables', null, 'anthropi
    - Claude has built-in safety considerations
    - Good for production environments with compliance needs
    - Transparent about limitations and assumptions
+
+### Google Gemini Best Practices
+
+1. **Leveraging Large Context**:
+   - Gemini excels with large context windows (up to 1M tokens)
+   - Ideal for complex schemas with many tables
+   - Good for batch processing multiple queries
+
+2. **Cost Efficiency**:
+   - Gemini Flash models offer excellent price-performance
+   - Great for high-volume, cost-sensitive applications
+   - Consider Gemini for development and testing environments
 
 ## Custom API Endpoints
 
@@ -371,7 +448,6 @@ default_model = "openai/gpt-4o"  # Use provider/model format
 
 The extension is designed to easily support additional providers:
 
-- **Google (Gemini)**: Planned support
 - **Azure OpenAI**: Possible future integration
 - **Local Models**: Full support via custom endpoints (see above)
 

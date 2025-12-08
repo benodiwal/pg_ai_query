@@ -84,6 +84,13 @@ default_model = "claude-sonnet-4-5-20250929"
 
 # Custom API endpoint (optional) - for Anthropic-compatible APIs
 # api_endpoint = "https://api.anthropic.com"
+
+[gemini]
+# Your Google API key (if using Gemini)
+api_key = "AIzaSy-your-google-api-key-here"
+
+# Default model to use (options: gemini-2.5-pro, gemini-2.5-flash, gemini-2.0-flash)
+default_model = "gemini-2.5-flash"
 ```
 
 ## Configuration Sections
@@ -153,6 +160,23 @@ You can use any valid Anthropic model name. Common options include:
 - `claude-3-sonnet-20240229` - Balanced Claude 3 model
 - `claude-3-haiku-20240307` - Fastest and most compact model
 
+### [gemini] Section
+
+Google Gemini provider configuration.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `api_key` | string | "" | Your Google API key from aistudio.google.com |
+| `default_model` | string | "gemini-2.5-flash" | Default Gemini model to use |
+| `max_tokens` | integer | 8192 | Maximum tokens in response |
+| `temperature` | float | 0.7 | Model temperature (0.0-1.0) |
+
+**Available Google Gemini Models:**
+You can use any valid Gemini model name. Common options include:
+- `gemini-2.5-pro` - Latest Gemini Pro model (best quality)
+- `gemini-2.5-flash` - Fast and cost-effective (recommended)
+- `gemini-2.0-flash` - Previous generation flash model
+
 ## Setting Up API Keys
 
 ### Getting an OpenAI API Key
@@ -169,6 +193,14 @@ You can use any valid Anthropic model name. Common options include:
 2. Create an account or sign in
 3. Navigate to API Keys section
 4. Create a new API key
+5. Copy the key and add it to your config file
+
+### Getting a Google Gemini API Key
+
+1. Visit [aistudio.google.com](https://aistudio.google.com)
+2. Sign in with your Google account
+3. Click on "Get API key" in the left sidebar
+4. Create a new API key or use an existing one
 5. Copy the key and add it to your config file
 
 ## Provider Selection Priority

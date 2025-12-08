@@ -84,6 +84,29 @@ TEST_F(ProviderSelectorTest, AutoSelectFallsBackToAnthropic) {
   EXPECT_EQ(result.api_key_source, "anthropic_config");
 }
 
+// Test auto-selection falls back to Gemini when configured
+TEST_F(ProviderSelectorTest, AutoSelectFallsBackToGemini) {
+  // Load config with only Gemini
+  ConfigManager::loadConfig(getConfigFixture("gemini_only.ini"));
+
+  auto result = ProviderSelector::selectProvider("", "");
+
+  EXPECT_TRUE(result.success);
+  EXPECT_EQ(result.provider, Provider::GEMINI);
+  EXPECT_EQ(result.api_key, "AIzaSyTest-gemini-key-12345");
+  EXPECT_EQ(result.api_key_source, "gemini_config");
+}
+
+// Test explicit Gemini provider selection with API key parameter
+TEST_F(ProviderSelectorTest, ExplicitGeminiWithApiKey) {
+  auto result = ProviderSelector::selectProvider("AIzaSyTest-key", "gemini");
+
+  EXPECT_TRUE(result.success);
+  EXPECT_EQ(result.provider, Provider::GEMINI);
+  EXPECT_EQ(result.api_key, "AIzaSyTest-key");
+  EXPECT_EQ(result.api_key_source, "parameter");
+}
+
 // Test failure when no API key available
 TEST_F(ProviderSelectorTest, FailsWhenNoApiKeyAvailable) {
   // Load empty config

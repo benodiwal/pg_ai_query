@@ -15,6 +15,10 @@ ProviderSelectionResult ProviderSelector::selectProvider(
     return selectExplicitProvider(api_key, config::Provider::ANTHROPIC);
   }
 
+  if (provider_preference == "gemini") {
+    return selectExplicitProvider(api_key, config::Provider::GEMINI);
+  }
+
   return autoSelectProvider(api_key);
 }
 
@@ -93,11 +97,24 @@ ProviderSelectionResult ProviderSelector::autoSelectProvider(
     return result;
   }
 
+  const auto* gemini_config =
+      config::ConfigManager::getProviderConfig(config::Provider::GEMINI);
+  if (gemini_config && !gemini_config->api_key.empty()) {
+    logger::Logger::info(
+        "Auto-selecting Gemini provider based on configuration");
+    result.provider = config::Provider::GEMINI;
+    result.config = gemini_config;
+    result.api_key = gemini_config->api_key;
+    result.api_key_source = "gemini_config";
+    result.success = true;
+    return result;
+  }
+
   logger::Logger::warning("No API key found in config");
   result.success = false;
   result.error_message =
-      "API key required. Pass as parameter or set OpenAI "
-      "or Anthropic API key in ~/.pg_ai.config.";
+      "API key required. Pass as parameter or set OpenAI, "
+      "Anthropic, or Gemini API key in ~/.pg_ai.config.";
   return result;
 }
 

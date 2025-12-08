@@ -1,6 +1,6 @@
 # PostgreSQL AI Query Extension
 
-The **PostgreSQL AI Query Extension** (`pg_ai_query`) is a powerful PostgreSQL extension that allows you to generate SQL queries from natural language descriptions using state-of-the-art AI models from OpenAI and Anthropic.
+The **PostgreSQL AI Query Extension** (`pg_ai_query`) is a powerful PostgreSQL extension that allows you to generate SQL queries from natural language descriptions using state-of-the-art AI models from OpenAI, Anthropic, and Google Gemini.
 
 ## What is pg_ai_query?
 
@@ -11,7 +11,7 @@ The **PostgreSQL AI Query Extension** (`pg_ai_query`) is a powerful PostgreSQL e
 - **Natural Language to SQL**: Convert plain English descriptions into valid PostgreSQL queries
 - **AI-Powered Query Analysis**: Analyze query performance with EXPLAIN ANALYZE and get optimization insights
 - **Automatic Schema Discovery**: The extension automatically analyzes your database schema to understand table structures, relationships, and constraints
-- **Multiple AI Providers**: Support for both OpenAI (GPT-4, GPT-3.5) and Anthropic (Claude) models
+- **Multiple AI Providers**: Support for OpenAI (GPT-4, GPT-3.5), Anthropic (Claude), and Google (Gemini) models
 - **Intelligent Query Generation**: Generates optimized queries with appropriate JOINs, WHERE clauses, and LIMIT constraints
 - **Performance Optimization**: Get AI-powered recommendations for query improvements and index suggestions
 - **Safety First**: Built-in protections against dangerous operations and unauthorized access to system tables
@@ -70,6 +70,11 @@ SELECT explain_query((SELECT query FROM generated));
 
 ### Anthropic Models
 - **Claude 3.5 Sonnet**: Advanced reasoning and natural language understanding
+
+### Google Gemini Models
+- **Gemini 2.5 Pro**: Flagship model with excellent reasoning
+- **Gemini 2.5 Flash**: Fast and cost-effective for most queries
+- **Gemini 2.0 Flash**: Previous generation, still highly capable
 
 ## Use Cases
 

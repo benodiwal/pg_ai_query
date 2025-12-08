@@ -115,6 +115,7 @@ TEST_F(ConfigManagerTest, UsesDefaultsForNonexistentFile) {
 TEST_F(ConfigManagerTest, ProviderToString) {
   EXPECT_EQ(ConfigManager::providerToString(Provider::OPENAI), "openai");
   EXPECT_EQ(ConfigManager::providerToString(Provider::ANTHROPIC), "anthropic");
+  EXPECT_EQ(ConfigManager::providerToString(Provider::GEMINI), "gemini");
   EXPECT_EQ(ConfigManager::providerToString(Provider::UNKNOWN), "unknown");
 }
 
@@ -127,6 +128,10 @@ TEST_F(ConfigManagerTest, StringToProvider) {
   EXPECT_EQ(ConfigManager::stringToProvider("anthropic"), Provider::ANTHROPIC);
   EXPECT_EQ(ConfigManager::stringToProvider("ANTHROPIC"), Provider::ANTHROPIC);
   EXPECT_EQ(ConfigManager::stringToProvider("Anthropic"), Provider::ANTHROPIC);
+
+  EXPECT_EQ(ConfigManager::stringToProvider("gemini"), Provider::GEMINI);
+  EXPECT_EQ(ConfigManager::stringToProvider("GEMINI"), Provider::GEMINI);
+  EXPECT_EQ(ConfigManager::stringToProvider("Gemini"), Provider::GEMINI);
 
   EXPECT_EQ(ConfigManager::stringToProvider("invalid"), Provider::UNKNOWN);
   EXPECT_EQ(ConfigManager::stringToProvider(""), Provider::UNKNOWN);
@@ -293,4 +298,35 @@ TEST(ProviderConfigTest, DefaultConstructorSetsDefaults) {
   EXPECT_EQ(config.default_max_tokens, 4096);
   EXPECT_DOUBLE_EQ(config.default_temperature, 0.7);
   EXPECT_TRUE(config.api_endpoint.empty());
+}
+
+// Test loading configuration with only Gemini
+TEST_F(ConfigManagerTest, LoadsGeminiOnlyConfig) {
+  std::string config_path = getConfigFixture("gemini_only.ini");
+  ASSERT_TRUE(ConfigManager::loadConfig(config_path));
+
+  const auto* gemini = ConfigManager::getProviderConfig(Provider::GEMINI);
+  ASSERT_NE(gemini, nullptr);
+  EXPECT_EQ(gemini->api_key, "AIzaSyTest-gemini-key-12345");
+  EXPECT_EQ(gemini->default_model, "gemini-2.5-flash");
+  EXPECT_EQ(gemini->default_max_tokens, 8192);
+  EXPECT_DOUBLE_EQ(gemini->default_temperature, 0.7);
+}
+
+// Test that valid config loads all three providers
+TEST_F(ConfigManagerTest, LoadsAllThreeProviders) {
+  std::string config_path = getConfigFixture("valid_config.ini");
+  ASSERT_TRUE(ConfigManager::loadConfig(config_path));
+
+  const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
+  const auto* anthropic = ConfigManager::getProviderConfig(Provider::ANTHROPIC);
+  const auto* gemini = ConfigManager::getProviderConfig(Provider::GEMINI);
+
+  ASSERT_NE(openai, nullptr);
+  ASSERT_NE(anthropic, nullptr);
+  ASSERT_NE(gemini, nullptr);
+
+  EXPECT_EQ(openai->api_key, "sk-test-openai-key-12345");
+  EXPECT_EQ(anthropic->api_key, "sk-ant-test-key-67890");
+  EXPECT_EQ(gemini->api_key, "AIzaSyTest-gemini-key-valid");
 }
