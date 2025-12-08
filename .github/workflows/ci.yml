@@ -132,7 +132,36 @@ jobs:
       - name: Build extension
         run: |
           cmake --build build --config ${{env.CMAKE_BUILD_TYPE}} --parallel $(nproc 2>/dev/null || sysctl -n hw.ncpu)
-      - name: Run tests
+      - name: Build and run unit tests
+        run: |
+          # Configure with tests enabled
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            PG_CONFIG=$(brew --prefix postgresql@${{ matrix.pg_version }})/bin/pg_config
+            OPENSSL_ROOT_DIR=$(brew --prefix openssl)
+            cmake -B build_tests -DCMAKE_BUILD_TYPE=${{env.CMAKE_BUILD_TYPE}} \
+                  -DBUILD_TESTS=ON \
+                  -DPG_CONFIG="$PG_CONFIG" \
+                  -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT_DIR"
+          else
+            PG_CONFIG=/usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
+            cmake -B build_tests -DCMAKE_BUILD_TYPE=${{env.CMAKE_BUILD_TYPE}} \
+                  -DBUILD_TESTS=ON \
+                  -DPG_CONFIG="$PG_CONFIG"
+          fi
+          # Build test executable
+          cmake --build build_tests --target pg_ai_query_tests --parallel $(nproc 2>/dev/null || sysctl -n hw.ncpu)
+          # Run unit tests
+          echo "=== Running Unit Tests ==="
+          cd build_tests && ./tests/pg_ai_query_tests --gtest_output=xml:test_results.xml
+          echo "Unit tests passed!"
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}-pg${{ matrix.pg_version }}
+          path: build_tests/test_results.xml
+          retention-days: 7
+      - name: Run extension tests
         run: |
           set -e  # Fail on any error
           # Install extension for testing
@@ -206,7 +235,23 @@ jobs:
           # Test schema discovery
           $PSQL -d testdb -c "SELECT get_database_tables();"
           $PSQL -d testdb -c "SELECT get_table_details('test_users');"
-          echo "All tests passed!"
+          echo "Extension tests passed!"
+      - name: Run PostgreSQL test suite
+        run: |
+          # Run our SQL test suite
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            export PATH="$(brew --prefix postgresql@${{ matrix.pg_version }})/bin:$PATH"
+            export PGDATABASE=testdb
+          else
+            export PATH="$PG_BIN:$PATH"
+            export PGDATABASE=testdb
+            export PGPORT=5432
+          fi
+          echo "=== Running PostgreSQL Test Suite ==="
+          psql -d $PGDATABASE -f tests/sql/setup.sql -q 2>/dev/null || true
+          psql -d $PGDATABASE -f tests/sql/test_extension_functions.sql
+          psql -d $PGDATABASE -f tests/sql/teardown.sql -q 2>/dev/null || true
+          echo "PostgreSQL test suite passed!"
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         if: always()

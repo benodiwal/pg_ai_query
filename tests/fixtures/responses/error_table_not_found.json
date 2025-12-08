@@ -1,0 +1,5 @@
+{
+  "sql": "",
+  "explanation": "Cannot generate query: The table 'nonexistent_table' does not exist in the database. Available tables are: users, orders, products.",
+  "warnings": ["Error: Table 'nonexistent_table' does not exist"]
+}

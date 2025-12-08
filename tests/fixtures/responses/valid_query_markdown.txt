@@ -1,0 +1,12 @@
+Here is the SQL query you requested:
+
+```json
+{
+  "sql": "SELECT COUNT(*) as total_orders, customer_id FROM orders GROUP BY customer_id HAVING COUNT(*) > 5",
+  "explanation": "This query counts orders per customer and filters to show only customers with more than 5 orders.",
+  "warnings": [],
+  "suggested_visualization": "bar_chart"
+}
+```
+
+Let me know if you need any modifications!

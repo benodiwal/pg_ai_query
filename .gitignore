@@ -73,6 +73,7 @@ docs/_book/
 docs/node_modules/
 
 # Testing
+build_tests
 test_results/
 coverage/
 *.gcov

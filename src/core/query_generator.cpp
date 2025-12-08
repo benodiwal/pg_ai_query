@@ -12,7 +12,6 @@ extern "C" {
 #include <cctype>
 #include <fstream>
 #include <optional>
-#include <regex>
 #include <sstream>
 #include <vector>
 
@@ -26,6 +25,7 @@ extern "C" {
 #include "../include/logger.hpp"
 #include "../include/prompts.hpp"
 #include "../include/provider_selector.hpp"
+#include "../include/query_parser.hpp"
 #include "../include/spi_connection.hpp"
 #include "../include/utils.hpp"
 
@@ -98,8 +98,7 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
                                             gemini_result.error_message};
       }
 
-      nlohmann::json j = extractSQLFromResponse(gemini_result.text);
-      return buildQueryResultFromJSON(j, gemini_result.text);
+      return QueryParser::parseQueryResponse(gemini_result.text);
     }
 
     // Use ProviderSelector for OpenAI and Anthropic
@@ -167,7 +166,7 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
                          .error_message = "Empty response from AI service"};
     }
 
-    return parseQueryResponse(result.text);
+    return QueryParser::parseQueryResponse(result.text);
   } catch (const std::exception& e) {
     return QueryResult{.generated_query = "",
                        .explanation = "",
@@ -217,177 +216,7 @@ std::string QueryGenerator::buildPrompt(const QueryRequest& request) {
   return prompt.str();
 }
 
-nlohmann::json QueryGenerator::extractSQLFromResponse(const std::string& text) {
-  std::regex json_block(R"(```(?:json)?\s*(\{[\s\S]*?\})\s*```)",
-                        std::regex::icase);
-  std::smatch match;
-
-  if (std::regex_search(text, match, json_block)) {
-    try {
-      return nlohmann::json::parse(match[1].str());
-    } catch (...) {
-    }
-  }
-
-  try {
-    return nlohmann::json::parse(text);
-  } catch (...) {
-  }
-
-  // Fallback
-  return {{"sql", text}, {"explanation", "Raw LLM output (no JSON detected)"}};
-}
-
-bool QueryGenerator::validateSystemTables(const std::string& sql,
-                                          std::string& error_msg) {
-  std::string upper_sql = sql;
-  std::transform(upper_sql.begin(), upper_sql.end(), upper_sql.begin(),
-                 ::toupper);
-
-  if (upper_sql.find("INFORMATION_SCHEMA") != std::string::npos ||
-      upper_sql.find("PG_CATALOG") != std::string::npos) {
-    error_msg =
-        "Generated query accesses system tables. Please query user tables "
-        "only.";
-    return false;
-  }
-  return true;
-}
-
-std::vector<std::string> QueryGenerator::parseWarnings(
-    const nlohmann::json& j) {
-  std::vector<std::string> warnings_vec;
-  try {
-    if (j.contains("warnings")) {
-      if (j["warnings"].is_array()) {
-        warnings_vec = j["warnings"].get<std::vector<std::string>>();
-      } else if (j["warnings"].is_string()) {
-        warnings_vec.push_back(j["warnings"].get<std::string>());
-      }
-    }
-  } catch (...) {
-  }
-  return warnings_vec;
-}
-
-QueryResult QueryGenerator::buildQueryResultFromJSON(
-    const nlohmann::json& j,
-    const std::string& raw_text) {
-  std::string sql = j.value("sql", "");
-  std::string explanation = j.value("explanation", "");
-
-  if (sql.empty()) {
-    return {.success = true,
-            .generated_query = "",
-            .explanation = raw_text,
-            .row_limit_applied = false};
-  }
-
-  std::string error_msg;
-  if (!validateSystemTables(sql, error_msg)) {
-    return {.success = false, .error_message = error_msg};
-  }
-
-  return {
-      .generated_query = sql,
-      .explanation = explanation,
-      .warnings = parseWarnings(j),
-      .row_limit_applied = j.value("row_limit_applied", false),
-      .suggested_visualization = j.value("suggested_visualization", "table"),
-      .success = true};
-}
-
-QueryResult QueryGenerator::parseQueryResponse(
-    const std::string& response_text) {
-  nlohmann::json j = extractSQLFromResponse(response_text);
-  std::string sql = j.value("sql", "");
-  std::string explanation = j.value("explanation", "");
-
-  std::vector<std::string> warnings_vec;
-  try {
-    if (j.contains("warnings")) {
-      if (j["warnings"].is_array()) {
-        warnings_vec = j["warnings"].get<std::vector<std::string>>();
-      } else if (j["warnings"].is_string()) {
-        warnings_vec.push_back(j["warnings"].get<std::string>());
-      }
-    }
-  } catch (...) {
-  }
-
-  std::string lower_explanation = explanation;
-  std::transform(lower_explanation.begin(), lower_explanation.end(),
-                 lower_explanation.begin(), ::tolower);
-
-  bool has_error_indicator =
-      lower_explanation.find("cannot generate query") != std::string::npos ||
-      lower_explanation.find("cannot create query") != std::string::npos ||
-      lower_explanation.find("unable to generate") != std::string::npos ||
-      lower_explanation.find("does not exist") != std::string::npos ||
-      lower_explanation.find("do not exist") != std::string::npos ||
-      lower_explanation.find("table not found") != std::string::npos ||
-      lower_explanation.find("column not found") != std::string::npos ||
-      lower_explanation.find("no such table") != std::string::npos ||
-      lower_explanation.find("no such column") != std::string::npos;
-
-  for (const auto& warning : warnings_vec) {
-    std::string lower_warning = warning;
-    std::transform(lower_warning.begin(), lower_warning.end(),
-                   lower_warning.begin(), ::tolower);
-    if (lower_warning.find("error:") != std::string::npos ||
-        lower_warning.find("does not exist") != std::string::npos ||
-        lower_warning.find("do not exist") != std::string::npos) {
-      has_error_indicator = true;
-      break;
-    }
-  }
-
-  if (has_error_indicator) {
-    return QueryResult{.generated_query = "",
-                       .explanation = explanation,
-                       .warnings = warnings_vec,
-                       .row_limit_applied = false,
-                       .suggested_visualization = "",
-                       .success = false,
-                       .error_message = explanation};
-  }
-
-  if (sql.empty()) {
-    return QueryResult{.generated_query = "",
-                       .explanation = explanation,
-                       .warnings = warnings_vec,
-                       .row_limit_applied = false,
-                       .suggested_visualization = "",
-                       .success = true,
-                       .error_message = ""};
-  }
-
-  std::string upper_sql = sql;
-  std::transform(upper_sql.begin(), upper_sql.end(), upper_sql.begin(),
-                 ::toupper);
-  if (upper_sql.find("INFORMATION_SCHEMA") != std::string::npos ||
-      upper_sql.find("PG_CATALOG") != std::string::npos) {
-    return QueryResult{
-        .generated_query = "",
-        .explanation = "",
-        .warnings = {},
-        .row_limit_applied = false,
-        .suggested_visualization = "",
-        .success = false,
-        .error_message =
-            "Generated query accesses system tables. Please query user "
-            "tables only."};
-  }
-
-  return QueryResult{
-      .generated_query = sql,
-      .explanation = explanation,
-      .warnings = warnings_vec,
-      .row_limit_applied = j.value("row_limit_applied", false),
-      .suggested_visualization = j.value("suggested_visualization", "table"),
-      .success = true,
-      .error_message = ""};
-}
+// Parsing logic has been moved to QueryParser class for testability
 
 void QueryGenerator::logModelSettings(const std::string& model_name,
                                       std::optional<int> max_tokens,

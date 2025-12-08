@@ -8,7 +8,7 @@ We appreciate your interest in contributing to the PostgreSQL AI Query Extension
 - [Using the gh-issue Script](#using-the-gh-issue-script)
 - [Development Environment](#development-environment)
 - [Code Style and Standards](#code-style-and-standards)
-<!-- - [Testing](#testing) -->
+- [Testing](#testing)
 - [Submitting Changes](#submitting-changes)
 - [Releases (Maintainers)](#releases-maintainers)
 - [Reporting Issues](#reporting-issues)
@@ -259,47 +259,127 @@ make format-check
 - **API Documentation**: Document all public interfaces
 - **Configuration**: Document all configuration options
 
-<!-- ## Testing
+## Testing
 
-### Integration Tests
+We have two types of tests:
+1. **Unit Tests** - C++ tests using GoogleTest (test core logic without PostgreSQL)
+2. **PostgreSQL Tests** - SQL tests that verify extension functions inside PostgreSQL
 
-Test with a real PostgreSQL instance:
+### Quick Start
 
 ```bash
-# Install extension
-sudo make install
+# Setup and run all unit tests (one command!)
+make test-unit
 
-# Connect to PostgreSQL and test
-psql -d your_database -c "CREATE EXTENSION pg_ai_query;"
-psql -d your_database -c "SELECT generate_query('show all tables');"
+# Run PostgreSQL extension tests
+make test-pg
+
+# Run both unit and PostgreSQL tests
+make test
 ```
 
-### Testing Guidelines
+### Unit Tests
 
-1. **Test Coverage**: Aim for good test coverage of new functionality
-2. **Error Cases**: Test both success and failure scenarios
-3. **Edge Cases**: Test boundary conditions and edge cases
-4. **Performance**: Test performance with large datasets
-5. **Security**: Test for SQL injection and other security issues
+Unit tests verify the core C++ logic without requiring a PostgreSQL instance.
 
-### Test Configuration
+```bash
+# Setup test environment and run unit tests (does everything automatically)
+make test-unit
 
-Create a test configuration file:
+# Or do it step by step:
+make test-setup    # Build test executable (only needed once)
+make test-unit     # Run tests
 
-```ini
-[general]
-log_level = "DEBUG"
-enable_logging = true
+# Run a specific test suite
+make test-suite SUITE=ConfigManagerTest
+make test-suite SUITE=QueryParserTest
 
-[response]
-show_explanation = true
-show_warnings = true
-use_formatted_response = true
+# Clean test artifacts
+make test-clean
+```
 
-[openai]
-api_key = "test-key-here"
-default_model = "gpt-3.5-turbo"
-``` -->
+**Available Test Suites:**
+- `ConfigManagerTest` - Config file parsing, defaults, providers
+- `ProviderSelectorTest` - API key resolution, provider selection
+- `ResponseFormatterTest` - JSON/plain text output formatting
+- `QueryParserTest` - SQL extraction, response parsing
+- `UtilsTest` - File reading, error formatting
+
+> **Note:** These unit tests verify individual components (config parsing, response formatting, etc.) without testing the full extension functionality or AI integration. For testing the actual extension with real queries, see the [Basic Usage](README.md#basic-usage) section in the README.
+
+### PostgreSQL Extension Tests
+
+These tests verify the actual extension functions inside PostgreSQL.
+
+**Prerequisites:** PostgreSQL running, extension installed.
+
+```bash
+# Build and install extension first
+make
+sudo make install
+psql -d your_database -c "CREATE EXTENSION IF NOT EXISTS pg_ai_query;"
+
+# Run PostgreSQL tests (uses PGDATABASE env var, defaults to 'postgres')
+make test-pg
+
+# Or specify a database
+PGDATABASE=mydb make test-pg
+```
+
+### Test Directory Structure
+
+```
+tests/
+├── unit/                           # C++ unit tests
+│   ├── test_config.cpp
+│   ├── test_provider_selector.cpp
+│   ├── test_response_formatter.cpp
+│   ├── test_query_parser.cpp
+│   └── test_utils.cpp
+├── fixtures/                       # Test data
+│   ├── configs/                    # Sample config files
+│   └── responses/                  # Sample AI responses
+├── sql/                            # PostgreSQL tests
+│   ├── setup.sql
+│   ├── test_extension_functions.sql
+│   └── teardown.sql
+├── CMakeLists.txt
+└── test_helpers.hpp
+```
+
+### Writing Tests
+
+**Adding Unit Tests:**
+
+1. Create/edit a test file in `tests/unit/`
+2. Include required headers:
+   ```cpp
+   #include <gtest/gtest.h>
+   #include <gmock/gmock.h>
+   #include "../test_helpers.hpp"
+   ```
+3. Write tests:
+   ```cpp
+   TEST(YourTestSuite, TestName) {
+       // Arrange, Act, Assert
+       EXPECT_EQ(expected, actual);
+   }
+   ```
+4. Rebuild: `make pg_ai_query_tests`
+
+**Adding PostgreSQL Tests:**
+
+Add to `tests/sql/test_extension_functions.sql`:
+```sql
+DO $$
+BEGIN
+    IF some_condition THEN
+        RAISE NOTICE 'PASS: Test description';
+    ELSE
+        RAISE EXCEPTION 'FAIL: Test description';
+    END IF;
+END $$;
+```
 
 ## Submitting Changes
 
