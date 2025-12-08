@@ -18,7 +18,7 @@ extern "C" {
 
 #include <ai/anthropic.h>
 #include <ai/openai.h>
-#include <gemini/client.h>
+#include "../include/gemini_client.h"
 #include <nlohmann/json.hpp>
 
 #include "../include/config.hpp"

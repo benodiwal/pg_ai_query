@@ -1,4 +1,4 @@
-#include "gemini/client.h"
+#include "../../include/gemini_client.h"
 
 #include <sstream>
 #include <curl/curl.h>

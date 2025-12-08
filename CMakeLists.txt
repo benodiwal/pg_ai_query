@@ -27,12 +27,9 @@ set(AI_SDK_STATIC_ONLY ON CACHE BOOL "")
 # Add the ai-sdk-cpp submodule
 add_subdirectory(third_party/ai-sdk-cpp)
 
-# Add Gemini client library
-add_subdirectory(third_party/gemini)
-
 # Include our source directories
 include_directories(src)
-include_directories(third_party/gemini/include)
+include_directories(third_party/ai-sdk-cpp/third_party/nlohmann_json_patched/include)
 
 # Source files for the clean implementation
 set(SOURCES
@@ -40,6 +37,7 @@ set(SOURCES
     src/core/query_generator.cpp
     src/core/response_formatter.cpp
     src/core/logger.cpp
+    src/providers/gemini/client.cpp
     src/utils.cpp
     src/prompts.cpp
     src/config.cpp
@@ -76,6 +74,7 @@ endif()
 
 # Find required system libraries
 find_package(OpenSSL REQUIRED)
+find_package(CURL REQUIRED)
 
 # Find gettext for NLS support (required by PostgreSQL)
 find_package(Intl)
@@ -100,7 +99,7 @@ target_link_libraries(pg_ai_query PRIVATE
     ai-sdk-cpp-core
     ai-sdk-cpp-openai
     ai-sdk-cpp-anthropic
-    gemini-client
+    CURL::libcurl
     OpenSSL::SSL
     OpenSSL::Crypto
 )
