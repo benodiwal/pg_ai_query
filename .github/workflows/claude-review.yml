@@ -29,10 +29,26 @@ jobs:
               content: 'eyes'
             });
 
+      - name: Get PR details
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            core.setOutput('head_sha', pr.data.head.sha);
+            core.setOutput('head_repo', pr.data.head.repo.full_name);
+            core.setOutput('head_ref', pr.data.head.ref);
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          repository: ${{ steps.pr.outputs.head_repo }}
+          ref: ${{ steps.pr.outputs.head_ref }}
 
       - name: Run Claude Code
         uses: anthropics/claude-code-action@beta
