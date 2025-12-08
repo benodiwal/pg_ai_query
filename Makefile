@@ -86,11 +86,7 @@ test-unit:
 		$(MAKE) test-setup; \
 	fi
 	@echo "\n=== Running Unit Tests ==="
-	@cd $(TEST_BUILD_DIR) && ./tests/pg_ai_query_tests --gtest_filter="ConfigManagerTest.*"
-	@cd $(TEST_BUILD_DIR) && ./tests/pg_ai_query_tests --gtest_filter="ProviderSelectorTest.*"
-	@cd $(TEST_BUILD_DIR) && ./tests/pg_ai_query_tests --gtest_filter="ResponseFormatterTest.*"
-	@cd $(TEST_BUILD_DIR) && ./tests/pg_ai_query_tests --gtest_filter="QueryParserTest.*"
-	@cd $(TEST_BUILD_DIR) && ./tests/pg_ai_query_tests --gtest_filter="UtilsTest.*"
+	@cd $(TEST_BUILD_DIR) && ./tests/pg_ai_query_tests
 	@echo "\n✓ All unit tests passed."
 
 ## Run specific test suite (usage: make test-suite SUITE=ConfigManagerTest)

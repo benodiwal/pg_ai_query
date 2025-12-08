@@ -8,11 +8,11 @@
 namespace pg_ai {
 
 struct ProviderSelectionResult {
-  config::Provider provider;
-  const config::ProviderConfig* config;
+  config::Provider provider = config::Provider::OPENAI;
+  const config::ProviderConfig* config = nullptr;
   std::string api_key;
   std::string api_key_source;
-  bool success;
+  bool success = false;
   std::string error_message;
 };
 

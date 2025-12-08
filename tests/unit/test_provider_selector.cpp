@@ -154,14 +154,15 @@ TEST_F(ProviderSelectorTest, MinimalConfigOpenAIOnly) {
   EXPECT_FALSE(result_anthropic.success);
 }
 
-// Test that ProviderSelectionResult has expected initial values
+// Test that ProviderSelectionResult has expected default values
 TEST(ProviderSelectionResultTest, DefaultValues) {
   ProviderSelectionResult result;
-  result.success = false;  // explicitly set to show it's not auto-true
 
+  // Verify default initialization
   EXPECT_FALSE(result.success);
   EXPECT_TRUE(result.api_key.empty());
   EXPECT_TRUE(result.api_key_source.empty());
   EXPECT_TRUE(result.error_message.empty());
   EXPECT_EQ(result.config, nullptr);
+  EXPECT_EQ(result.provider, config::Provider::OPENAI);
 }
