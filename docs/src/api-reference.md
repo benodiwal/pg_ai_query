@@ -9,7 +9,7 @@ This page provides complete technical reference for the `pg_ai_query` extension 
 | **Name** | `pg_ai_query` |
 | **Version** | 1.0 |
 | **Schema** | `public` |
-| **Dependencies** | PostgreSQL 12+ |
+| **Dependencies** | PostgreSQL 14+ |
 
 ## SQL API
 

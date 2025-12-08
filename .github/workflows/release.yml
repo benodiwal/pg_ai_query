@@ -16,6 +16,9 @@ on:
         default: false
         type: boolean
 
+permissions:
+  contents: write
+
 env:
   CMAKE_BUILD_TYPE: Release
 
@@ -27,10 +30,14 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+      previous_tag: ${{ steps.version.outputs.previous_tag }}
+      repo_name: ${{ steps.version.outputs.repo_name }}
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Determine version
       id: version
@@ -55,11 +62,26 @@ jobs:
           exit 1
         fi
 
+        # Get previous tag for changelog comparison
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        if [ -z "$PREVIOUS_TAG" ]; then
+          # If no previous tag, use the first commit
+          PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
+        fi
+
+        # Extract repo name from github.repository (owner/repo -> repo)
+        REPO_NAME="${{ github.repository }}"
+        REPO_NAME="${REPO_NAME#*/}"
+
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+        echo "previous_tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+        echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
 
         echo "Version: $VERSION"
         echo "Pre-release: $IS_PRERELEASE"
+        echo "Previous tag: $PREVIOUS_TAG"
+        echo "Repo name: $REPO_NAME"
 
     - name: Validate changelog
       run: |
@@ -83,21 +105,36 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             pg_version: "14"
-            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-20.04-pg14"
-          - os: ubuntu-22.04
+            platform_name: "linux-x86_64-pg14"
+          - os: ubuntu-24.04
             pg_version: "15"
-            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-22.04-pg15"
-          - os: ubuntu-22.04
+            platform_name: "linux-x86_64-pg15"
+          - os: ubuntu-24.04
             pg_version: "16"
-            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-22.04-pg16"
-          - os: macos-12
+            platform_name: "linux-x86_64-pg16"
+          - os: ubuntu-24.04
+            pg_version: "17"
+            platform_name: "linux-x86_64-pg17"
+          - os: ubuntu-24.04
+            pg_version: "18"
+            platform_name: "linux-x86_64-pg18"
+          - os: macos-latest
             pg_version: "14"
-            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-12-pg14"
-          - os: macos-13
+            platform_name: "macos-latest-pg14"
+          - os: macos-latest
             pg_version: "15"
-            artifact_name: "pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-13-pg15"
+            platform_name: "macos-latest-pg15"
+          - os: macos-latest
+            pg_version: "16"
+            platform_name: "macos-latest-pg16"
+          - os: macos-latest
+            pg_version: "17"
+            platform_name: "macos-latest-pg17"
+          - os: macos-latest
+            pg_version: "18"
+            platform_name: "macos-latest-pg18"
 
     steps:
     - name: Checkout code
@@ -105,6 +142,13 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 0
+
+    - name: Set artifact name
+      id: artifact
+      run: |
+        ARTIFACT_NAME="pg_ai_query-${{ needs.validate-release.outputs.version }}-${{ matrix.platform_name }}"
+        echo "name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+        echo "Artifact name: $ARTIFACT_NAME"
 
     - name: Install dependencies (Ubuntu)
       if: startsWith(matrix.os, 'ubuntu')
@@ -117,6 +161,8 @@ jobs:
           cmake \
           libssl-dev \
           pkg-config \
+          gettext \
+          libz-dev \
           postgresql-${{ matrix.pg_version }} \
           postgresql-server-dev-${{ matrix.pg_version }}
 
@@ -132,12 +178,14 @@ jobs:
           export PG_CONFIG=$(brew --prefix postgresql@${{ matrix.pg_version }})/bin/pg_config
           export OPENSSL_ROOT_DIR=$(brew --prefix openssl)
         else
-          export PG_CONFIG=/usr/bin/pg_config
+          # Ubuntu: Use version-specific pg_config path
+          export PG_CONFIG=/usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
         fi
 
         cmake -B build \
               -DCMAKE_BUILD_TYPE=${{env.CMAKE_BUILD_TYPE}} \
               -DCMAKE_INSTALL_PREFIX=/tmp/pg_ai_query_install \
+              -DPG_CONFIG="$PG_CONFIG" \
               -DPACKAGE_VERSION="${{ needs.validate-release.outputs.version }}"
 
     - name: Build extension
@@ -145,6 +193,9 @@ jobs:
         cmake --build build --config ${{env.CMAKE_BUILD_TYPE}} --parallel $(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
     - name: Create installation package
+      env:
+        VERSION: ${{ needs.validate-release.outputs.version }}
+        REPO_NAME: ${{ needs.validate-release.outputs.repo_name }}
       run: |
         # Install to temporary directory
         DESTDIR=/tmp/package cmake --install build
@@ -157,7 +208,8 @@ jobs:
         if [[ "${{ matrix.os }}" == macos* ]]; then
           PG_CONFIG=$(brew --prefix postgresql@${{ matrix.pg_version }})/bin/pg_config
         else
-          PG_CONFIG=/usr/bin/pg_config
+          # Ubuntu: Use version-specific pg_config path
+          PG_CONFIG=/usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
         fi
 
         SHAREDIR=$($PG_CONFIG --sharedir)
@@ -206,7 +258,7 @@ jobs:
 
         # Create README
         cat > README.md << EOF
-        # pg_ai_query ${{ needs.validate-release.outputs.version }}
+        # pg_ai_query ${VERSION}
 
         PostgreSQL AI Query Extension - Generate SQL queries from natural language using AI.
 
@@ -243,7 +295,7 @@ jobs:
 
         ## Documentation
 
-        Complete documentation: https://${{ github.repository_owner }}.github.io/$(echo ${{ github.repository }} | cut -d'/' -f2)
+        Complete documentation: https://${{ github.repository_owner }}.github.io/${REPO_NAME}
 
         ## Support
 
@@ -253,7 +305,7 @@ jobs:
 
         # Create version info
         cat > VERSION << EOF
-        Version: ${{ needs.validate-release.outputs.version }}
+        Version: ${VERSION}
         Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
         Platform: ${{ matrix.os }}
         PostgreSQL: ${{ matrix.pg_version }}
@@ -262,18 +314,19 @@ jobs:
 
     - name: Create tarball
       run: |
+        ARTIFACT_NAME="${{ steps.artifact.outputs.name }}"
         cd package
-        tar -czf "../${{ matrix.artifact_name }}.tar.gz" .
+        tar -czf "../${ARTIFACT_NAME}.tar.gz" .
         cd ..
 
-        echo "Package created: ${{ matrix.artifact_name }}.tar.gz"
-        echo "Package size: $(du -h ${{ matrix.artifact_name }}.tar.gz | cut -f1)"
+        echo "Package created: ${ARTIFACT_NAME}.tar.gz"
+        echo "Package size: $(du -h ${ARTIFACT_NAME}.tar.gz | cut -f1)"
 
     - name: Upload release artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.artifact_name }}
-        path: ${{ matrix.artifact_name }}.tar.gz
+        name: ${{ steps.artifact.outputs.name }}
+        path: ${{ steps.artifact.outputs.name }}.tar.gz
         retention-days: 30
 
   create-release:
@@ -281,22 +334,29 @@ jobs:
     needs: [validate-release, build-release-artifacts]
     runs-on: ubuntu-latest
 
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Download all artifacts
       uses: actions/download-artifact@v4
+      with:
+        path: artifacts
 
     - name: Generate release notes
       id: release_notes
+      env:
+        VERSION: ${{ needs.validate-release.outputs.version }}
+        PREVIOUS_TAG: ${{ needs.validate-release.outputs.previous_tag }}
+        REPO_NAME: ${{ needs.validate-release.outputs.repo_name }}
       run: |
         echo "Generating release notes..."
 
         # Start release notes
         cat > release_notes.md << EOF
-        # pg_ai_query ${{ needs.validate-release.outputs.version }}
+        # pg_ai_query ${VERSION}
 
         **PostgreSQL AI Query Extension** - Generate SQL queries from natural language using AI.
 
@@ -312,7 +372,7 @@ jobs:
         if [ -f CHANGELOG.md ]; then
           echo "Adding changelog information..."
           # Extract changelog for this version
-          sed -n "/## \[${{ needs.validate-release.outputs.version }}\]/,/## \[/p" CHANGELOG.md | head -n -1 >> release_notes.md || echo "No specific changelog entry found."
+          sed -n "/## \[${VERSION}\]/,/## \[/p" CHANGELOG.md | head -n -1 >> release_notes.md || echo "No specific changelog entry found."
         fi
 
         # Add platform-specific installation notes
@@ -322,21 +382,26 @@ jobs:
 
         | Platform | PostgreSQL | File |
         |----------|------------|------|
-        | Ubuntu 20.04 | 14 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-20.04-pg14.tar.gz\` |
-        | Ubuntu 22.04 | 15 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-22.04-pg15.tar.gz\` |
-        | Ubuntu 22.04 | 16 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-22.04-pg16.tar.gz\` |
-        | macOS 12 | 14 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-12-pg14.tar.gz\` |
-        | macOS 13 | 15 | \`pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-13-pg15.tar.gz\` |
+        | Linux (x86_64) | 14 | \`pg_ai_query-${VERSION}-linux-x86_64-pg14.tar.gz\` |
+        | Linux (x86_64) | 15 | \`pg_ai_query-${VERSION}-linux-x86_64-pg15.tar.gz\` |
+        | Linux (x86_64) | 16 | \`pg_ai_query-${VERSION}-linux-x86_64-pg16.tar.gz\` |
+        | Linux (x86_64) | 17 | \`pg_ai_query-${VERSION}-linux-x86_64-pg17.tar.gz\` |
+        | Linux (x86_64) | 18 | \`pg_ai_query-${VERSION}-linux-x86_64-pg18.tar.gz\` |
+        | macOS (latest) | 14 | \`pg_ai_query-${VERSION}-macos-latest-pg14.tar.gz\` |
+        | macOS (latest) | 15 | \`pg_ai_query-${VERSION}-macos-latest-pg15.tar.gz\` |
+        | macOS (latest) | 16 | \`pg_ai_query-${VERSION}-macos-latest-pg16.tar.gz\` |
+        | macOS (latest) | 17 | \`pg_ai_query-${VERSION}-macos-latest-pg17.tar.gz\` |
+        | macOS (latest) | 18 | \`pg_ai_query-${VERSION}-macos-latest-pg18.tar.gz\` |
 
         ## Documentation
 
-        - **Complete Guide**: https://${{ github.repository_owner }}.github.io/$(echo ${{ github.repository }} | cut -d'/' -f2)
-        - **Quick Start**: [Installation Guide](https://${{ github.repository_owner }}.github.io/$(echo ${{ github.repository }} | cut -d'/' -f2)/installation.html)
-        - **Configuration**: [Configuration Guide](https://${{ github.repository_owner }}.github.io/$(echo ${{ github.repository }} | cut -d'/' -f2)/configuration.html)
+        - **Complete Guide**: https://${{ github.repository_owner }}.github.io/${REPO_NAME}
+        - **Quick Start**: [Installation Guide](https://${{ github.repository_owner }}.github.io/${REPO_NAME}/installation.html)
+        - **Configuration**: [Configuration Guide](https://${{ github.repository_owner }}.github.io/${REPO_NAME}/configuration.html)
 
         ## Requirements
 
-        - PostgreSQL 12+ with development headers
+        - PostgreSQL 14+ with development headers
         - OpenAI or Anthropic API key
         - C++20 compatible compiler (for building from source)
 
@@ -352,62 +417,50 @@ jobs:
 
         - Report bugs: [GitHub Issues](https://github.com/${{ github.repository }}/issues)
         - Questions: [GitHub Discussions](https://github.com/${{ github.repository }}/discussions)
-        - Documentation: [Official Docs](https://${{ github.repository_owner }}.github.io/$(echo ${{ github.repository }} | cut -d'/' -f2))
+        - Documentation: [Official Docs](https://${{ github.repository_owner }}.github.io/${REPO_NAME})
 
         ---
 
-        **Full Changelog**: https://github.com/${{ github.repository }}/compare/v1.0.0...${{ needs.validate-release.outputs.version }}
+        **Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREVIOUS_TAG}...${VERSION}
         EOF
 
         # Set output for next step
         echo "RELEASE_NOTES_FILE=release_notes.md" >> $GITHUB_OUTPUT
 
-    - name: Create Release
-      id: create_release
+    - name: Create Release and Upload Assets
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: ${{ needs.validate-release.outputs.version }}
+        IS_PRERELEASE: ${{ needs.validate-release.outputs.is_prerelease }}
       run: |
-        if [ "${{ needs.validate-release.outputs.is_prerelease }}" == "true" ]; then
+        if [ "$IS_PRERELEASE" == "true" ]; then
           PRERELEASE_FLAG="--prerelease"
         else
           PRERELEASE_FLAG=""
         fi
 
-        gh release create "${{ needs.validate-release.outputs.version }}" \
-          --title "pg_ai_query ${{ needs.validate-release.outputs.version }}" \
+        # Collect all tarball files
+        ASSETS=""
+        for artifact_dir in artifacts/*/; do
+          for tarball in "$artifact_dir"*.tar.gz; do
+            if [ -f "$tarball" ]; then
+              ASSETS="$ASSETS $tarball"
+            fi
+          done
+        done
+
+        echo "Creating release with assets: $ASSETS"
+
+        # Create release and upload all assets in one command
+        gh release create "$VERSION" \
+          --title "pg_ai_query $VERSION" \
           --notes-file release_notes.md \
-          $PRERELEASE_FLAG
-
-  upload-release-assets:
-    name: Upload Release Assets
-    needs: [validate-release, create-release]
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        artifact:
-          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-20.04-pg14"
-          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-22.04-pg15"
-          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-ubuntu-22.04-pg16"
-          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-12-pg14"
-          - "pg_ai_query-${{ needs.validate-release.outputs.version }}-macos-13-pg15"
-
-    steps:
-    - name: Download artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ matrix.artifact }}
-
-    - name: Upload Release Asset
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        gh release upload "${{ needs.validate-release.outputs.version }}" \
-          "${{ matrix.artifact }}.tar.gz"
+          $PRERELEASE_FLAG \
+          $ASSETS
 
   post-release:
     name: Post-Release Tasks
-    needs: [validate-release, create-release, upload-release-assets]
+    needs: [validate-release, create-release]
     runs-on: ubuntu-latest
 
     steps:
@@ -415,35 +468,14 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Update documentation version
+      env:
+        VERSION: ${{ needs.validate-release.outputs.version }}
+        IS_PRERELEASE: ${{ needs.validate-release.outputs.is_prerelease }}
       run: |
-        echo "Release ${{ needs.validate-release.outputs.version }} completed successfully!"
-        echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ needs.validate-release.outputs.version }}"
+        echo "Release ${VERSION} completed successfully!"
+        echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
         echo "Release Statistics:"
-        echo "  - Version: ${{ needs.validate-release.outputs.version }}"
-        echo "  - Pre-release: ${{ needs.validate-release.outputs.is_prerelease }}"
-        echo "  - Platforms: 5 supported platforms"
+        echo "  - Version: ${VERSION}"
+        echo "  - Pre-release: ${IS_PRERELEASE}"
+        echo "  - Platforms: 10 supported platforms"
         echo "  - Documentation: Updated and deployed"
-
-    - name: Create release announcement
-      if: needs.validate-release.outputs.is_prerelease == 'false'
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const version = '${{ needs.validate-release.outputs.version }}';
-          const releaseUrl = `https://github.com/${{ github.repository }}/releases/tag/${{ needs.validate-release.outputs.version }}`;
-
-          // You could extend this to post to discussions, send notifications, etc.
-          console.log(`pg_ai_query ${version} has been released!`);
-          console.log(`Download: ${releaseUrl}`);
-          console.log(`Docs: https://${{ github.repository_owner }}.github.io/$(echo ${{ github.repository }} | cut -d'/' -f2)`);
-
-          // Example: Create a discussion post (requires discussions to be enabled)
-          /*
-          await github.rest.discussions.createDiscussion({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            title: `pg_ai_query ${version} Released!`,
-            body: `We're excited to announce the release of pg_ai_query ${version}!\n\n[Download here](${releaseUrl})`,
-            category_id: 'announcements' // You'd need to get the actual category ID
-          });
-          */

@@ -34,9 +34,9 @@ Configuration::Configuration() {
   // Default OpenAI provider
   default_provider.provider = Provider::OPENAI;
   default_provider.api_key = "";
-  default_provider.default_model = "gpt-4o";
-  default_provider.default_max_tokens = 4096;
-  default_provider.default_temperature = 0.7;
+  default_provider.default_model = constants::DEFAULT_OPENAI_MODEL;
+  default_provider.default_max_tokens = constants::DEFAULT_MAX_TOKENS;
+  default_provider.default_temperature = constants::DEFAULT_TEMPERATURE;
 
   providers.push_back(default_provider);
 }
@@ -48,7 +48,7 @@ bool ConfigManager::loadConfig() {
     return false;
   }
 
-  std::string config_path = home_dir + "/.pg_ai.config";
+  std::string config_path = home_dir + "/" + constants::CONFIG_FILE_NAME;
   return loadConfig(config_path);
 }
 
@@ -84,9 +84,9 @@ void ConfigManager::loadEnvConfig() {
     if (!provider_config) {
       ProviderConfig config;
       config.provider = Provider::OPENAI;
-      config.default_model = "gpt-4o";
-      config.default_max_tokens = 16384;
-      config.default_temperature = 0.7;
+      config.default_model = constants::DEFAULT_OPENAI_MODEL;
+      config.default_max_tokens = constants::DEFAULT_OPENAI_MAX_TOKENS;
+      config.default_temperature = constants::DEFAULT_TEMPERATURE;
 
       config_.providers.push_back(config);
       provider_config = &config_.providers.back();
@@ -101,9 +101,9 @@ void ConfigManager::loadEnvConfig() {
     if (!provider_config) {
       ProviderConfig config;
       config.provider = Provider::ANTHROPIC;
-      config.default_model = "claude-sonnet-4-5-20250929";
-      config.default_max_tokens = 8192;
-      config.default_temperature = 0.7;
+      config.default_model = constants::DEFAULT_ANTHROPIC_MODEL;
+      config.default_max_tokens = constants::DEFAULT_ANTHROPIC_MAX_TOKENS;
+      config.default_temperature = constants::DEFAULT_TEMPERATURE;
 
       config_.providers.push_back(config);
       provider_config = &config_.providers.back();
@@ -119,8 +119,8 @@ void ConfigManager::loadEnvConfig() {
       ProviderConfig config;
       config.provider = Provider::GEMINI;
       config.default_model = "gemini-2.5-flash";
-      config.default_max_tokens = 4096;
-      config.default_temperature = 0.7;
+      config.default_max_tokens = constants::DEFAULT_MAX_TOKENS;
+      config.default_temperature = constants::DEFAULT_TEMPERATURE;
 
       config_.providers.push_back(config);
       provider_config = &config_.providers.back();
@@ -153,13 +153,13 @@ const ProviderConfig* ConfigManager::getProviderConfig(Provider provider) {
 std::string ConfigManager::providerToString(Provider provider) {
   switch (provider) {
     case Provider::OPENAI:
-      return "openai";
+      return constants::PROVIDER_OPENAI;
     case Provider::ANTHROPIC:
-      return "anthropic";
+      return constants::PROVIDER_ANTHROPIC;
     case Provider::GEMINI:
       return "gemini";
     default:
-      return "unknown";
+      return constants::PROVIDER_UNKNOWN;
   }
 }
 
@@ -167,9 +167,9 @@ Provider ConfigManager::stringToProvider(const std::string& provider_str) {
   std::string lower = provider_str;
   std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
 
-  if (lower == "openai")
+  if (lower == constants::PROVIDER_OPENAI)
     return Provider::OPENAI;
-  if (lower == "anthropic")
+  if (lower == constants::PROVIDER_ANTHROPIC)
     return Provider::ANTHROPIC;
   if (lower == "gemini")
     return Provider::GEMINI;
@@ -181,25 +181,22 @@ bool ConfigManager::parseConfig(const std::string& content) {
   std::string line;
   std::string current_section;
 
-  config_ = Configuration();  // Reset to defaults
+  config_ = Configuration();
 
   while (std::getline(stream, line)) {
     // Remove leading/trailing whitespace
     line.erase(0, line.find_first_not_of(" \t"));
     line.erase(line.find_last_not_of(" \t") + 1);
 
-    // Skip empty lines and comments
     if (line.empty() || line[0] == '#') {
       continue;
     }
 
-    // Handle sections
     if (line[0] == '[' && line.back() == ']') {
       current_section = line.substr(1, line.length() - 2);
       continue;
     }
 
-    // Parse key-value pairs
     size_t eq_pos = line.find('=');
     if (eq_pos == std::string::npos) {
       continue;
@@ -208,19 +205,16 @@ bool ConfigManager::parseConfig(const std::string& content) {
     std::string key = line.substr(0, eq_pos);
     std::string value = line.substr(eq_pos + 1);
 
-    // Remove whitespace around key and value
     key.erase(0, key.find_first_not_of(" \t"));
     key.erase(key.find_last_not_of(" \t") + 1);
     value.erase(0, value.find_first_not_of(" \t"));
     value.erase(value.find_last_not_of(" \t") + 1);
 
-    // Remove quotes from value if present
     if (value.length() >= 2 && value[0] == '"' && value.back() == '"') {
       value = value.substr(1, value.length() - 2);
     }
 
-    // Parse based on section
-    if (current_section == "general") {
+    if (current_section == constants::SECTION_GENERAL) {
       if (key == "log_level")
         config_.log_level = value;
       else if (key == "enable_logging")
@@ -229,12 +223,12 @@ bool ConfigManager::parseConfig(const std::string& content) {
         config_.request_timeout_ms = std::stoi(value);
       else if (key == "max_retries")
         config_.max_retries = std::stoi(value);
-    } else if (current_section == "query") {
+    } else if (current_section == constants::SECTION_QUERY) {
       if (key == "enforce_limit")
         config_.enforce_limit = (value == "true");
       else if (key == "default_limit")
         config_.default_limit = std::stoi(value);
-    } else if (current_section == "response") {
+    } else if (current_section == constants::SECTION_RESPONSE) {
       if (key == "show_explanation")
         config_.show_explanation = (value == "true");
       else if (key == "show_warnings")
@@ -244,12 +238,12 @@ bool ConfigManager::parseConfig(const std::string& content) {
       else if (key == "use_formatted_response") {
         config_.use_formatted_response = (value == "true");
       }
-    } else if (current_section == "openai") {
+    } else if (current_section == constants::SECTION_OPENAI) {
       auto provider_config = getProviderConfigMutable(Provider::OPENAI);
       if (!provider_config) {
         ProviderConfig config;
         config.provider = Provider::OPENAI;
-        config.default_model = "gpt-4o";
+        config.default_model = constants::DEFAULT_OPENAI_MODEL;
         config_.providers.push_back(config);
         provider_config = &config_.providers.back();
       }
@@ -262,14 +256,16 @@ bool ConfigManager::parseConfig(const std::string& content) {
         provider_config->default_max_tokens = std::stoi(value);
       else if (key == "temperature")
         provider_config->default_temperature = std::stod(value);
+      else if (key == "api_endpoint")
+        provider_config->api_endpoint = value;
 
-    } else if (current_section == "anthropic") {
+    } else if (current_section == constants::SECTION_ANTHROPIC) {
       auto provider_config = getProviderConfigMutable(Provider::ANTHROPIC);
       if (!provider_config) {
         ProviderConfig config;
         config.provider = Provider::ANTHROPIC;
-        config.default_model = "claude-sonnet-4-5-20250929";
-        config.default_max_tokens = 8192;
+        config.default_model = constants::DEFAULT_ANTHROPIC_MODEL;
+        config.default_max_tokens = constants::DEFAULT_ANTHROPIC_MAX_TOKENS;
 
         config_.providers.push_back(config);
         provider_config = &config_.providers.back();
@@ -283,6 +279,8 @@ bool ConfigManager::parseConfig(const std::string& content) {
         provider_config->default_max_tokens = std::stoi(value);
       else if (key == "temperature")
         provider_config->default_temperature = std::stod(value);
+      else if (key == "api_endpoint")
+        provider_config->api_endpoint = value;
 
     } else if (current_section == "gemini") {
       auto provider_config = getProviderConfigMutable(Provider::GEMINI);
@@ -290,7 +288,8 @@ bool ConfigManager::parseConfig(const std::string& content) {
         ProviderConfig config;
         config.provider = Provider::GEMINI;
         config.default_model = "gemini-2.5-flash";
-        config.default_max_tokens = 4096;
+        config.default_max_tokens = constants::DEFAULT_MAX_TOKENS;
+        config.default_temperature = constants::DEFAULT_TEMPERATURE;
 
         config_.providers.push_back(config);
         provider_config = &config_.providers.back();
@@ -307,7 +306,6 @@ bool ConfigManager::parseConfig(const std::string& content) {
     }
   }
 
-  // Set default provider if specified
   if (!config_.providers.empty()) {
     config_.default_provider = config_.providers[0];
   }
@@ -330,7 +328,6 @@ std::string ConfigManager::getHomeDirectory() {
     return std::string(home);
   }
 
-  // Fallback: try to get from getpwuid
   const char* user = std::getenv("USER");
   if (user) {
     return std::string("/home/") + user;

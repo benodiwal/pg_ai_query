@@ -72,12 +72,18 @@ api_key = "sk-your-openai-api-key-here"
 # Default model to use (options: gpt-4o, gpt-4, gpt-3.5-turbo)
 default_model = "gpt-4o"
 
+# Custom API endpoint (optional) - for OpenAI-compatible APIs
+# api_endpoint = "https://api.openai.com"
+
 [anthropic]
 # Your Anthropic API key (if using Claude)
 api_key = "sk-ant-your-anthropic-api-key-here"
 
 # Default model to use (options: claude-sonnet-4-5-20250929)
 default_model = "claude-sonnet-4-5-20250929"
+
+# Custom API endpoint (optional) - for Anthropic-compatible APIs
+# api_endpoint = "https://api.anthropic.com"
 ```
 
 ## Configuration Sections
@@ -121,6 +127,7 @@ OpenAI provider configuration.
 |--------|------|---------|-------------|
 | `api_key` | string | "" | Your OpenAI API key from platform.openai.com |
 | `default_model` | string | "gpt-4o" | Default OpenAI model to use |
+| `api_endpoint` | string | "https://api.openai.com" | Custom API endpoint for OpenAI-compatible APIs |
 
 **Available OpenAI Models:**
 You can use any valid OpenAI model name. Common options include:
@@ -137,6 +144,7 @@ Anthropic (Claude) provider configuration.
 |--------|------|---------|-------------|
 | `api_key` | string | "" | Your Anthropic API key from console.anthropic.com |
 | `default_model` | string | "claude-sonnet-4-5-20250929" | Default Claude model to use |
+| `api_endpoint` | string | "https://api.anthropic.com" | Custom API endpoint for Anthropic-compatible APIs |
 
 **Available Anthropic Models:**
 You can use any valid Anthropic model name. Common options include:
@@ -179,26 +187,6 @@ The extension validates configuration on startup:
 - **Model Availability**: Accepts any valid model name string (verify availability with provider)
 - **Numeric Values**: Ensures timeouts and limits are positive integers
 - **Boolean Values**: Validates true/false values
-
-## Environment Variables
-
-In addition to the configuration file, you can configure API keys using environment variables. This is useful for containerized environments or when you prefer not to store secrets in files.
-
-| Environment Variable | Description |
-|----------------------|-------------|
-| `OPENAI_API_KEY` | API key for OpenAI |
-| `ANTHROPIC_API_KEY` | API key for Anthropic |
-
-**Note:** Environment variables take precedence over values specified in the configuration file.
-
-### Example Usage
-
-```bash
-export OPENAI_API_KEY="sk-..."
-export ANTHROPIC_API_KEY="sk-ant-..."
-```
-
-If no configuration file exists, setting these environment variables will automatically initialize the extension with default settings (e.g., `gpt-4o` for OpenAI).
 
 ## Security Considerations
 

@@ -28,7 +28,7 @@ You can use any valid OpenAI model name. Here is a comparison of common models:
 ### Installation
 
 1.  **Prerequisites**:
-    - PostgreSQL 12+ with development headers
+    - PostgreSQL 14+ with development headers
     - CMake 3.16+
     - C++20 compatible compiler
     - API key from OpenAI or Anthropic

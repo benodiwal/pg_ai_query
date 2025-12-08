@@ -24,7 +24,7 @@ This page answers common questions about the `pg_ai_query` extension.
 
 ### What PostgreSQL versions are supported?
 
-PostgreSQL 12 and later are supported. We recommend PostgreSQL 14 or later for the best experience.
+PostgreSQL 14 and later are supported.
 
 ### Do I need to install anything besides PostgreSQL?
 

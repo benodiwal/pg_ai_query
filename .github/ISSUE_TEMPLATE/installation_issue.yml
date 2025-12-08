@@ -131,7 +131,7 @@ body:
       label: Pre-installation Checklist
       description: Have you verified these prerequisites?
       options:
-        - label: PostgreSQL 12+ is installed with development headers (postgresql-server-dev)
+        - label: PostgreSQL 14+ is installed with development headers (postgresql-server-dev)
         - label: CMake 3.16+ is installed
         - label: C++20 compatible compiler is installed
         - label: Git submodules were properly initialized (--recurse-submodules)

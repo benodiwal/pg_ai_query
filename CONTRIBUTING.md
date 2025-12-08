@@ -10,6 +10,7 @@ We appreciate your interest in contributing to the PostgreSQL AI Query Extension
 - [Code Style and Standards](#code-style-and-standards)
 <!-- - [Testing](#testing) -->
 - [Submitting Changes](#submitting-changes)
+- [Releases (Maintainers)](#releases-maintainers)
 - [Reporting Issues](#reporting-issues)
 - [Feature Requests](#feature-requests)
 - [Documentation](#documentation)
@@ -21,7 +22,7 @@ We appreciate your interest in contributing to the PostgreSQL AI Query Extension
 
 Before you start contributing, make sure you have:
 
-- PostgreSQL 12+ with development headers
+- PostgreSQL 14+ with development headers
 - CMake 3.16 or later
 - C++20 compatible compiler (GCC 8+, Clang 10+, or MSVC 2019+)
 - Git for version control
@@ -355,6 +356,95 @@ All submissions require review:
 2. **Peer Review**: At least one maintainer reviews the code
 3. **Testing**: Changes are tested in development environment
 4. **Documentation**: Documentation is updated if necessary
+
+## Releases (Maintainers)
+
+This section is for project maintainers who have permissions to create releases.
+
+### Release Process
+
+Releases are automated via GitHub Actions. There are two ways to trigger a release:
+
+#### Option 1: Tag-based Release (Recommended)
+
+```bash
+# Ensure you're on main with latest changes
+git checkout main
+git pull origin main
+
+# Create and push a version tag
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+#### Option 2: Manual Workflow Dispatch
+
+1. Go to **Actions** → **Release** workflow
+2. Click **Run workflow**
+3. Enter the version (e.g., `v1.0.0`)
+4. Optionally mark as pre-release
+5. Click **Run workflow**
+
+### Version Format
+
+- **Stable releases**: `v1.0.0`, `v1.2.3`
+- **Pre-releases**: `v1.0.0-beta.1`, `v1.0.0-rc.1`, `v2.0.0-alpha.2`
+
+Pre-releases are automatically detected based on the tag format (contains `-`).
+
+### What Gets Built
+
+The release workflow builds artifacts for:
+
+| Platform | PostgreSQL Versions |
+|----------|---------------------|
+| Linux (x86_64) | 14, 15, 16, 17, 18 |
+| macOS (latest) | 14, 15, 16, 17, 18 |
+
+Each artifact is a `.tar.gz` containing:
+- Extension library (`.so` or `.dylib`)
+- SQL and control files
+- `install.sh` script
+- README with quick start instructions
+
+### Pre-release Checklist
+
+Before creating a release:
+
+1. **Update CHANGELOG.md** with the new version entry
+2. **Verify CI passes** on main branch
+3. **Test locally** with a clean build
+4. **Review open issues** for any blockers
+
+### After Release
+
+The workflow automatically:
+- Creates a GitHub Release with release notes
+- Uploads all platform artifacts
+- Generates a supported platforms table
+- Links to documentation
+
+### Troubleshooting Releases
+
+**Release workflow failed?**
+- Check the Actions tab for error logs
+- Ensure the tag format is valid (`v1.0.0`)
+- Verify all CI checks pass on the tagged commit
+
+**Need to re-release?**
+```bash
+# Delete the tag locally and remotely
+git tag -d v1.0.0
+git push origin :refs/tags/v1.0.0
+
+# Fix the issue, then re-tag
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+**Artifacts missing?**
+- Check if the build job completed for all platforms
+- Review build logs for compilation errors
 
 ## Reporting Issues
 

@@ -36,9 +36,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # os: [ubuntu-latest, macos-latest] # Temporarily comment out Ubuntu
-        os: [macos-latest]
-        pg_version: ["14", "15", "16"]
+        os: [ubuntu-24.04, macos-latest]
+        pg_version: ["14", "15", "16", "17", "18"]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,7 +59,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pg${{ matrix.pg_version }}-
       - name: Install dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-24.04'
         run: |
           # Install PostgreSQL from official APT repository
           wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
@@ -83,11 +82,26 @@ jobs:
           # Link gettext for macOS
           brew link --force gettext
       - name: Setup PostgreSQL (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-24.04'
         run: |
-          sudo systemctl start postgresql
-          sudo -u postgres createuser -s $USER
-          sudo -u postgres createdb testdb
+          # Use version-specific binaries (similar to macOS approach)
+          PG_BIN=/usr/lib/postgresql/${{ matrix.pg_version }}/bin
+          PGDATA=/tmp/pgdata-${{ matrix.pg_version }}
+
+          # Initialize a fresh database cluster
+          sudo mkdir -p $PGDATA
+          sudo chown postgres:postgres $PGDATA
+          sudo -u postgres $PG_BIN/initdb -D $PGDATA
+
+          # Start PostgreSQL on a fixed port
+          sudo -u postgres $PG_BIN/pg_ctl -D $PGDATA -l /tmp/pg.log -o "-p 5432" start
+          sleep 2
+
+          # Create user and database
+          sudo -u postgres $PG_BIN/createuser -p 5432 -s $USER
+          sudo -u postgres $PG_BIN/createdb -p 5432 testdb
+
+          echo "PG_BIN=$PG_BIN" >> $GITHUB_ENV
       - name: Setup PostgreSQL (macOS)
         if: matrix.os == 'macos-latest'
         run: |
@@ -109,8 +123,10 @@ jobs:
                   -DPG_CONFIG="$PG_CONFIG" \
                   -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT_DIR"
           else
+            # Ubuntu: Use version-specific pg_config path
+            PG_CONFIG=/usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
             cmake -B build -DCMAKE_BUILD_TYPE=${{env.CMAKE_BUILD_TYPE}} \
-                  -DPG_CONFIG=/usr/bin/pg_config
+                  -DPG_CONFIG="$PG_CONFIG"
           fi
       - name: Build extension
         run: |
@@ -123,15 +139,25 @@ jobs:
             export PG_CONFIG=$(brew --prefix postgresql@${{ matrix.pg_version }})/bin/pg_config
             export PATH="$(brew --prefix postgresql@${{ matrix.pg_version }})/bin:$PATH"
             export PGDATA="/opt/homebrew/var/postgresql@${{ matrix.pg_version }}"
+            # Install into the correct Homebrew prefix
+            INSTALL_PREFIX=$(brew --prefix postgresql@${{ matrix.pg_version }})
+            sudo cmake --install build --prefix "$INSTALL_PREFIX"
+            # macOS: use psql from PATH
+            PSQL="psql"
+          else
+            # Ubuntu: Install to default system paths
+            sudo cmake --install build
+            # Ubuntu: use version-specific psql
+            PSQL="$PG_BIN/psql -p 5432"
           fi
-          # Install into the correct Homebrew prefix (overrides CMAKE_INSTALL_PREFIX)
-          BREW_PREFIX=$(brew --prefix postgresql@${{ matrix.pg_version }})
-          sudo cmake --install build --prefix "$BREW_PREFIX"
           # Verify psql is available
-          which psql || echo "psql not found in PATH"
-          psql --version || echo "psql version check failed"
-          # Get paths from pg_config
-          PG_CONFIG=${PG_CONFIG:-/usr/bin/pg_config}
+          $PSQL --version || echo "psql version check failed"
+          # Get paths from pg_config (use version-specific path for Ubuntu)
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            PG_CONFIG=${PG_CONFIG:-$(brew --prefix postgresql@${{ matrix.pg_version }})/bin/pg_config}
+          else
+            PG_CONFIG=/usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
+          fi
           PG_PKGLIB=$($PG_CONFIG --pkglibdir)
           PG_LIBDIR=$($PG_CONFIG --libdir)
           PG_SHAREDIR=$($PG_CONFIG --sharedir)
@@ -153,7 +179,7 @@ jobs:
           ls -la "$EXTENSION_PATH" || { echo "Extension binary not found in pkglibdir"; exit 1; }
           # Test $libdir resolution
           echo "Testing \$libdir resolution:"
-          psql -d testdb -c "SHOW dynamic_library_path;" || echo "Could not check dynamic_library_path"
+          $PSQL -d testdb -c "SHOW dynamic_library_path;" || echo "Could not check dynamic_library_path"
           # Check control and SQL files
           echo "Checking for control file:"
           ls -la "$PG_SHAREDIR/extension/pg_ai_query.control" || echo "Control file not found"
@@ -168,17 +194,17 @@ jobs:
             ldd "$EXTENSION_PATH" || echo "Could not check linked libraries"
           fi
           # Basic functionality test
-          psql -d testdb -c "CREATE EXTENSION IF NOT EXISTS pg_ai_query;" || { echo "CREATE EXTENSION failed"; exit 1; }
+          $PSQL -d testdb -c "CREATE EXTENSION IF NOT EXISTS pg_ai_query;" || { echo "CREATE EXTENSION failed"; exit 1; }
           # Test basic functions exist
-          psql -d testdb -c "\\df generate_query"
-          psql -d testdb -c "\\df get_database_tables"
-          psql -d testdb -c "\\df get_table_details"
+          $PSQL -d testdb -c "\\df generate_query"
+          $PSQL -d testdb -c "\\df get_database_tables"
+          $PSQL -d testdb -c "\\df get_table_details"
           # Test with sample data
-          psql -d testdb -c "CREATE TABLE test_users (id SERIAL PRIMARY KEY, name VARCHAR(100));"
-          psql -d testdb -c "INSERT INTO test_users (name) VALUES ('Test User');"
+          $PSQL -d testdb -c "CREATE TABLE test_users (id SERIAL PRIMARY KEY, name VARCHAR(100));"
+          $PSQL -d testdb -c "INSERT INTO test_users (name) VALUES ('Test User');"
           # Test schema discovery
-          psql -d testdb -c "SELECT get_database_tables();"
-          psql -d testdb -c "SELECT get_table_details('test_users');"
+          $PSQL -d testdb -c "SELECT get_database_tables();"
+          $PSQL -d testdb -c "SELECT get_table_details('test_users');"
           echo "All tests passed!"
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -193,7 +219,7 @@ jobs:
           retention-days: 7
   static-analysis:
     name: Static Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -219,7 +245,7 @@ jobs:
       - name: Configure CMake with static analysis
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug \
-                -DPG_CONFIG=/usr/bin/pg_config \
+                -DPG_CONFIG=/usr/lib/postgresql/14/bin/pg_config \
                 -DCMAKE_CXX_CPPCHECK="cppcheck;--enable=all;--suppress=missingIncludeSystem" \
                 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       - name: Run static analysis

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 
 #include <nlohmann/json.hpp>
@@ -89,6 +90,10 @@ class QueryGenerator {
   static std::vector<std::string> parseWarnings(const nlohmann::json& j);
   static QueryResult buildQueryResultFromJSON(const nlohmann::json& j,
                                               const std::string& raw_text);
+  static QueryResult parseQueryResponse(const std::string& response_text);
+  static void logModelSettings(const std::string& model_name,
+                               std::optional<int> max_tokens,
+                               std::optional<double> temperature);
 };
 
 }  // namespace pg_ai

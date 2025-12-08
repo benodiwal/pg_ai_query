@@ -7,7 +7,7 @@ This guide will walk you through installing the PostgreSQL AI Query extension on
 Before installing `pg_ai_query`, ensure you have the following:
 
 ### System Requirements
-- **PostgreSQL 12+**: The extension requires PostgreSQL version 12 or later
+- **PostgreSQL 14+**: The extension requires PostgreSQL version 14 or later
 - **Operating System**: Linux, macOS, or Windows (with proper development tools)
 - **C++ Compiler**: GCC 8+ or Clang 10+ with C++20 support
 - **CMake**: Version 3.15 or later for building

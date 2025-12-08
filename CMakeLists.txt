@@ -24,12 +24,16 @@ set(AI_SDK_BUILD_TESTS OFF CACHE BOOL "")
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
 set(AI_SDK_STATIC_ONLY ON CACHE BOOL "")
 
+# Enable Position Independent Code for all targets (required for Linux shared libraries)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Add the ai-sdk-cpp submodule
 add_subdirectory(third_party/ai-sdk-cpp)
 
 # Include our source directories
 include_directories(src)
 include_directories(third_party/ai-sdk-cpp/third_party/nlohmann_json_patched/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/ai-sdk-cpp/include)
 
 # Source files for the clean implementation
 set(SOURCES
@@ -38,6 +42,9 @@ set(SOURCES
     src/core/response_formatter.cpp
     src/core/logger.cpp
     src/providers/gemini/client.cpp
+    src/core/provider_selector.cpp
+    src/core/ai_client_factory.cpp
+    src/core/spi_connection.cpp
     src/utils.cpp
     src/prompts.cpp
     src/config.cpp
@@ -63,13 +70,27 @@ if(APPLE)
         LINK_FLAGS "-bundle_loader ${PG_BINDIR}/postgres"
     )
     message(STATUS "Building PostgreSQL ${PG_MAJOR_VERSION} extension with suffix: ${PG_EXTENSION_SUFFIX}")
-else()
+elseif(UNIX)
+    # Linux build configuration
     add_library(pg_ai_query SHARED ${SOURCES})
     set_target_properties(pg_ai_query PROPERTIES
         PREFIX ""
         SUFFIX ".so"
         POSITION_INDEPENDENT_CODE ON
+        # Set RPATH for finding libraries at runtime
+        INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib;/usr/lib;/usr/local/lib"
+        BUILD_RPATH "$ORIGIN;$ORIGIN/../lib;/usr/lib;/usr/local/lib"
+        BUILD_WITH_INSTALL_RPATH ON
     )
+    message(STATUS "Building PostgreSQL ${PG_MAJOR_VERSION} extension for Linux with suffix: .so")
+else()
+    # Windows or other platforms (basic support)
+    add_library(pg_ai_query SHARED ${SOURCES})
+    set_target_properties(pg_ai_query PROPERTIES
+        PREFIX ""
+        SUFFIX ".dll"
+    )
+    message(STATUS "Building PostgreSQL extension for Windows/Other")
 endif()
 
 # Find required system libraries
@@ -112,9 +133,9 @@ if(Intl_FOUND)
     target_include_directories(pg_ai_query PRIVATE ${Intl_INCLUDE_DIRS})
 endif()
 
-# Set RPATH for macOS to find system libraries
+# Platform-specific library configuration
 if(APPLE)
-    # Get the system library path where libz.1.dylib actually exists
+    # macOS: Set RPATH to find system libraries
     execute_process(COMMAND find /usr/lib /System/Library/Frameworks -name "libz.1.dylib" -type f 2>/dev/null | head -1
         OUTPUT_VARIABLE LIBZ_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
     get_filename_component(LIBZ_DIR "${LIBZ_PATH}" DIRECTORY)
@@ -123,24 +144,40 @@ if(APPLE)
         INSTALL_RPATH "@loader_path;/usr/lib;/System/Library/Frameworks;${LIBZ_DIR};/opt/homebrew/lib;/usr/local/lib"
         BUILD_RPATH "@loader_path;/usr/lib;/System/Library/Frameworks;${LIBZ_DIR};/opt/homebrew/lib;/usr/local/lib"
         MACOSX_RPATH ON
-        # Force static linking to avoid RPATH issues
         LINK_SEARCH_START_STATIC ON
         LINK_SEARCH_END_STATIC ON
     )
 
-    # Find and link system zlib to avoid duplicates
+    # Find and link system zlib
     find_library(SYSTEM_Z z REQUIRED)
     if(SYSTEM_Z)
         target_link_libraries(pg_ai_query PRIVATE ${SYSTEM_Z})
         message(STATUS "Using system zlib at: ${SYSTEM_Z}")
     else()
-        # Fallback to standard zlib
         find_package(ZLIB REQUIRED)
         target_link_libraries(pg_ai_query PRIVATE ZLIB::ZLIB)
         message(STATUS "Using standard zlib package")
     endif()
 
     message(STATUS "Found libz.1.dylib at: ${LIBZ_PATH}")
+
+elseif(UNIX)
+    # Linux: Link required system libraries
+    find_package(ZLIB REQUIRED)
+    find_package(Threads REQUIRED)
+
+    target_link_libraries(pg_ai_query PRIVATE
+        ZLIB::ZLIB
+        Threads::Threads
+    )
+
+    # Check for libdl (dynamic loading library, needed on some Linux systems)
+    find_library(DL_LIBRARY dl)
+    if(DL_LIBRARY)
+        target_link_libraries(pg_ai_query PRIVATE ${DL_LIBRARY})
+    endif()
+
+    message(STATUS "Linux build: Linked zlib, pthread")
 endif()
 
 # Include directories
