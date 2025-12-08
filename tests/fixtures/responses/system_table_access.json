@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT * FROM information_schema.tables",
+  "explanation": "Query to list all tables"
+}

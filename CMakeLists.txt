@@ -38,6 +38,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/ai-sdk-cpp/include)
 set(SOURCES
     src/pg_ai_query.cpp
     src/core/query_generator.cpp
+    src/core/query_parser.cpp
     src/core/response_formatter.cpp
     src/core/logger.cpp
     src/core/provider_selector.cpp
@@ -226,4 +227,10 @@ if(BUILD_LOGGER_TEST)
         src/core/logger.cpp
     )
     target_include_directories(test_logger PRIVATE src)
+endif()
+
+# Build tests (cmake .. -DBUILD_TESTS=ON)
+option(BUILD_TESTS "Build unit tests" OFF)
+if(BUILD_TESTS)
+    add_subdirectory(tests)
 endif()

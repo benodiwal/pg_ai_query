@@ -84,8 +84,6 @@ class QueryGenerator {
 
  private:
   static std::string buildPrompt(const QueryRequest& request);
-  static nlohmann::json extractSQLFromResponse(const std::string& response);
-  static QueryResult parseQueryResponse(const std::string& response_text);
   static void logModelSettings(const std::string& model_name,
                                std::optional<int> max_tokens,
                                std::optional<double> temperature);

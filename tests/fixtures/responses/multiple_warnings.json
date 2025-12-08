@@ -1,0 +1,11 @@
+{
+  "sql": "SELECT * FROM large_table",
+  "explanation": "Retrieves all rows from the large_table",
+  "warnings": [
+    "This query may return a large number of rows",
+    "Consider adding a LIMIT clause",
+    "No WHERE clause specified - full table scan"
+  ],
+  "row_limit_applied": false,
+  "suggested_visualization": "table"
+}
