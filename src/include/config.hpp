@@ -10,6 +10,7 @@ namespace constants {
 // Provider name strings
 constexpr const char* PROVIDER_OPENAI = "openai";
 constexpr const char* PROVIDER_ANTHROPIC = "anthropic";
+constexpr const char* PROVIDER_GEMINI = "gemini";
 constexpr const char* PROVIDER_AUTO = "auto";
 constexpr const char* PROVIDER_UNKNOWN = "unknown";
 
@@ -26,6 +27,7 @@ constexpr const char* SECTION_QUERY = "query";
 constexpr const char* SECTION_RESPONSE = "response";
 constexpr const char* SECTION_OPENAI = "openai";
 constexpr const char* SECTION_ANTHROPIC = "anthropic";
+constexpr const char* SECTION_GEMINI = "gemini";
 
 // Default model names
 constexpr const char* DEFAULT_OPENAI_MODEL = "gpt-4o";

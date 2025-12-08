@@ -47,7 +47,7 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
     }
 
     // Handle Gemini separately as it's not yet integrated into ProviderSelector
-    if (request.provider == "gemini") {
+    if (request.provider == config::constants::PROVIDER_GEMINI) {
       const config::ProviderConfig* gemini_config =
           config::ConfigManager::getProviderConfig(config::Provider::GEMINI);
       std::string api_key = request.api_key;

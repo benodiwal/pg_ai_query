@@ -157,7 +157,7 @@ std::string ConfigManager::providerToString(Provider provider) {
     case Provider::ANTHROPIC:
       return constants::PROVIDER_ANTHROPIC;
     case Provider::GEMINI:
-      return "gemini";
+      return constants::PROVIDER_GEMINI;
     default:
       return constants::PROVIDER_UNKNOWN;
   }
@@ -171,7 +171,7 @@ Provider ConfigManager::stringToProvider(const std::string& provider_str) {
     return Provider::OPENAI;
   if (lower == constants::PROVIDER_ANTHROPIC)
     return Provider::ANTHROPIC;
-  if (lower == "gemini")
+  if (lower == constants::PROVIDER_GEMINI)
     return Provider::GEMINI;
   return Provider::UNKNOWN;
 }
@@ -282,7 +282,7 @@ bool ConfigManager::parseConfig(const std::string& content) {
       else if (key == "api_endpoint")
         provider_config->api_endpoint = value;
 
-    } else if (current_section == "gemini") {
+    } else if (current_section == constants::SECTION_GEMINI) {
       auto provider_config = getProviderConfigMutable(Provider::GEMINI);
       if (!provider_config) {
         ProviderConfig config;
