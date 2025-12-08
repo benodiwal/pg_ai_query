@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <optional>
+#include <string>
 
 namespace gemini {
 
@@ -35,9 +35,8 @@ class GeminiClient {
 
   std::string build_request_body(const GeminiRequest& request);
   GeminiResponse parse_response(const std::string& body, int status_code);
-  GeminiResponse make_http_request(
-      const std::string& url,
-      const std::string& body);
+  GeminiResponse make_http_request(const std::string& url,
+                                   const std::string& body);
 };
 
 }  // namespace gemini

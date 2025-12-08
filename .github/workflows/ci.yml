@@ -69,6 +69,7 @@ jobs:
             build-essential \
             cmake \
             libssl-dev \
+            libcurl4-openssl-dev \
             pkg-config \
             gettext \
             libz-dev \

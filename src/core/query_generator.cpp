@@ -16,9 +16,9 @@ extern "C" {
 #include <sstream>
 #include <vector>
 
+#include "../include/gemini_client.h"
 #include <ai/anthropic.h>
 #include <ai/openai.h>
-#include "../include/gemini_client.h"
 #include <nlohmann/json.hpp>
 
 #include "../include/ai_client_factory.hpp"
@@ -64,12 +64,15 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
                            .row_limit_applied = false,
                            .suggested_visualization = "",
                            .success = false,
-                           .error_message = "Gemini API key required. Pass as parameter or set in ~/.pg_ai.config."};
+                           .error_message =
+                               "Gemini API key required. Pass as parameter or "
+                               "set in ~/.pg_ai.config."};
       }
 
-      std::string model_name = (gemini_config && !gemini_config->default_model.empty())
-                                 ? gemini_config->default_model
-                                 : "gemini-2.5-flash";
+      std::string model_name =
+          (gemini_config && !gemini_config->default_model.empty())
+              ? gemini_config->default_model
+              : "gemini-2.5-flash";
       logger::Logger::info("Using Gemini model: " + model_name);
 
       std::string system_prompt = prompts::SYSTEM_PROMPT;
@@ -80,18 +83,19 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
           .model = model_name,
           .system_prompt = system_prompt,
           .user_prompt = prompt,
-          .temperature = gemini_config
-                             ? std::optional<double>(gemini_config->default_temperature)
-                             : std::nullopt,
-          .max_tokens = gemini_config
-                            ? std::optional<int>(gemini_config->default_max_tokens)
-                            : std::nullopt};
+          .temperature = gemini_config ? std::optional<double>(
+                                             gemini_config->default_temperature)
+                                       : std::nullopt,
+          .max_tokens = gemini_config ? std::optional<int>(
+                                            gemini_config->default_max_tokens)
+                                      : std::nullopt};
 
       auto gemini_result = gemini_client.generate_text(gemini_request);
 
       if (!gemini_result.success) {
         return QueryResult{.success = false,
-                          .error_message = "Gemini API error: " + gemini_result.error_message};
+                           .error_message = "Gemini API error: " +
+                                            gemini_result.error_message};
       }
 
       nlohmann::json j = extractSQLFromResponse(gemini_result.text);
@@ -235,7 +239,7 @@ nlohmann::json QueryGenerator::extractSQLFromResponse(const std::string& text) {
 }
 
 bool QueryGenerator::validateSystemTables(const std::string& sql,
-                                         std::string& error_msg) {
+                                          std::string& error_msg) {
   std::string upper_sql = sql;
   std::transform(upper_sql.begin(), upper_sql.end(), upper_sql.begin(),
                  ::toupper);
