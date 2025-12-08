@@ -78,56 +78,8 @@ bool ConfigManager::loadConfig(const std::string& config_path) {
 }
 
 void ConfigManager::loadEnvConfig() {
-  const char* openai_key = std::getenv("OPENAI_API_KEY");
-  if (openai_key) {
-    auto provider_config = getProviderConfigMutable(Provider::OPENAI);
-    if (!provider_config) {
-      ProviderConfig config;
-      config.provider = Provider::OPENAI;
-      config.default_model = constants::DEFAULT_OPENAI_MODEL;
-      config.default_max_tokens = constants::DEFAULT_OPENAI_MAX_TOKENS;
-      config.default_temperature = constants::DEFAULT_TEMPERATURE;
-
-      config_.providers.push_back(config);
-      provider_config = &config_.providers.back();
-    }
-    provider_config->api_key = openai_key;
-    logger::Logger::info("Loaded OpenAI API key from environment variable");
-  }
-
-  const char* anthropic_key = std::getenv("ANTHROPIC_API_KEY");
-  if (anthropic_key) {
-    auto provider_config = getProviderConfigMutable(Provider::ANTHROPIC);
-    if (!provider_config) {
-      ProviderConfig config;
-      config.provider = Provider::ANTHROPIC;
-      config.default_model = constants::DEFAULT_ANTHROPIC_MODEL;
-      config.default_max_tokens = constants::DEFAULT_ANTHROPIC_MAX_TOKENS;
-      config.default_temperature = constants::DEFAULT_TEMPERATURE;
-
-      config_.providers.push_back(config);
-      provider_config = &config_.providers.back();
-    }
-    provider_config->api_key = anthropic_key;
-    logger::Logger::info("Loaded Anthropic API key from environment variable");
-  }
-
-  const char* gemini_key = std::getenv("GEMINI_API_KEY");
-  if (gemini_key) {
-    auto provider_config = getProviderConfigMutable(Provider::GEMINI);
-    if (!provider_config) {
-      ProviderConfig config;
-      config.provider = Provider::GEMINI;
-      config.default_model = "gemini-2.5-flash";
-      config.default_max_tokens = constants::DEFAULT_MAX_TOKENS;
-      config.default_temperature = constants::DEFAULT_TEMPERATURE;
-
-      config_.providers.push_back(config);
-      provider_config = &config_.providers.back();
-    }
-    provider_config->api_key = gemini_key;
-    logger::Logger::info("Loaded Gemini API key from environment variable");
-  }
+  // NOTE for developers: Environment variable loading is disabled for now - all
+  // config via ~/.pg_ai.config
 }
 
 const Configuration& ConfigManager::getConfig() {
