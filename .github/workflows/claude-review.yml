@@ -1,0 +1,67 @@
+name: Claude PR Review
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  claude:
+    if: |
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/claude')
+    runs-on: macos-latest
+    steps:
+      - name: Add reaction to comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'eyes'
+            });
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: ${{ vars.CLAUDE_MODEL || 'claude-sonnet-4-20250514' }}
+          trigger_phrase: "/claude"
+          allowed_tools: "Bash,Read,Glob,Grep,Edit,Write"
+          custom_instructions: |
+            You are reviewing a PostgreSQL C++ extension project (pg_ai_query).
+
+            When asked to review:
+            1. Analyze the PR changes
+            2. Build the project: mkdir -p build && cd build && cmake .. && make
+            3. Run any available tests
+            4. Provide feedback on:
+               - C++ code quality and best practices
+               - PostgreSQL extension patterns (SPI, memory contexts, ereport)
+               - Security issues (SQL injection, API key exposure)
+               - Build errors or warnings
+
+            Be concise and actionable. Fix simple issues directly if asked.
+
+      - name: Add success reaction
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket'
+            });
