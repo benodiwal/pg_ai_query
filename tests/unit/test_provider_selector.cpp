@@ -12,7 +12,9 @@ using namespace pg_ai::test_utils;
 class ProviderSelectorTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    // Load a valid config with both providers for most tests
+    // Reset config state and load a valid config with both providers for most
+    // tests
+    ConfigManager::reset();
     ConfigManager::loadConfig(getConfigFixture("valid_config.ini"));
   }
 };

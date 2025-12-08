@@ -118,6 +118,11 @@ class ConfigManager {
    */
   static Provider stringToProvider(const std::string& provider_str);
 
+  /**
+   * @brief Reset configuration to defaults (for testing only)
+   */
+  static void reset();
+
  private:
   static Configuration config_;
   static bool config_loaded_;

@@ -10,7 +10,8 @@ using namespace pg_ai::test_utils;
 class ConfigManagerTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    // Each test will load its own config file
+    // Reset config state before each test to ensure test isolation
+    ConfigManager::reset();
   }
 };
 

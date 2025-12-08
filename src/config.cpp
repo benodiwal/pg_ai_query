@@ -124,6 +124,11 @@ Provider ConfigManager::stringToProvider(const std::string& provider_str) {
   return Provider::UNKNOWN;
 }
 
+void ConfigManager::reset() {
+  config_ = Configuration();
+  config_loaded_ = false;
+}
+
 bool ConfigManager::parseConfig(const std::string& content) {
   std::istringstream stream(content);
   std::string line;
