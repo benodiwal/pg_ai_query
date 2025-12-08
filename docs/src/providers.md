@@ -36,8 +36,6 @@ The extension supports any valid Anthropic model name. The following are common 
 
 **Overview**: Google provides the Gemini family of models, known for multimodal capabilities and strong reasoning.
 
-**API Endpoint**: `https://generativelanguage.googleapis.com/v1beta/`
-
 **Available Models**:
 The extension supports any valid Gemini model name. The following are common examples:
 

@@ -79,21 +79,6 @@ api_key = "your-google-api-key-here"
 default_model = "gemini-2.5-flash"
 ```
 
-### Environment Variables
-
-You can also configure API keys using environment variables. These will override values in the configuration file:
-
-- `OPENAI_API_KEY`: API key for OpenAI
-- `ANTHROPIC_API_KEY`: API key for Anthropic
-- `GOOGLE_API_KEY`: API key for Google Gemini
-
-Example:
-```bash
-export OPENAI_API_KEY="sk-..."
-export ANTHROPIC_API_KEY="sk-ant-..."
-export GOOGLE_API_KEY="AIza..."
-```
-
 **Available Anthropic Models:**
 
 You can use any valid Anthropic model name. Here is a comparison of common models:
