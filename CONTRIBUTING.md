@@ -298,15 +298,14 @@ make test-suite SUITE=QueryParserTest
 make test-clean
 ```
 
-**Test Suites:**
+**Available Test Suites:**
+- `ConfigManagerTest` - Config file parsing, defaults, providers
+- `ProviderSelectorTest` - API key resolution, provider selection
+- `ResponseFormatterTest` - JSON/plain text output formatting
+- `QueryParserTest` - SQL extraction, response parsing
+- `UtilsTest` - File reading, error formatting
 
-| Suite | Tests | Description |
-|-------|-------|-------------|
-| ConfigManagerTest | 16 | Config file parsing, defaults, providers |
-| ProviderSelectorTest | 13 | API key resolution, provider selection |
-| ResponseFormatterTest | 18 | JSON/plain text output formatting |
-| QueryParserTest | 29 | SQL extraction, response parsing |
-| UtilsTest | 14 | File reading, error formatting |
+> **Note:** These unit tests verify individual components (config parsing, response formatting, etc.) without testing the full extension functionality or AI integration. For testing the actual extension with real queries, see the [Basic Usage](README.md#basic-usage) section in the README.
 
 ### PostgreSQL Extension Tests
 
@@ -345,8 +344,7 @@ tests/
 │   ├── test_extension_functions.sql
 │   └── teardown.sql
 ├── CMakeLists.txt
-├── test_helpers.hpp
-└── run_tests.sh
+└── test_helpers.hpp
 ```
 
 ### Writing Tests
