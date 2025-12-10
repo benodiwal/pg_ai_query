@@ -167,8 +167,18 @@ bool ConfigManager::parseConfig(const std::string& content) {
     value.erase(0, value.find_first_not_of(" \t"));
     value.erase(value.find_last_not_of(" \t") + 1);
 
-    if (value.length() >= 2 && value[0] == '"' && value.back() == '"') {
-      value = value.substr(1, value.length() - 2);
+    // Handle quoted values and inline comments
+    if (value.length() >= 2 && value[0] == '"') {
+      size_t closing_quote = value.find('"', 1);
+      if (closing_quote != std::string::npos) {
+        value = value.substr(1, closing_quote - 1);
+      }
+    } else {
+      size_t comment_pos = value.find('#');
+      if (comment_pos != std::string::npos) {
+        value = value.substr(0, comment_pos);
+        value.erase(value.find_last_not_of(" \t") + 1);
+      }
     }
 
     if (current_section == constants::SECTION_GENERAL) {

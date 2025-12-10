@@ -180,7 +180,7 @@ log_level = ERROR
 # enable_logging = true  <- this is commented out
 
 [openai]
-api_key = sk-test  # inline comments are NOT supported, so this would be included
+api_key = sk-test  # inline comment should be stripped
 )");
 
   ASSERT_TRUE(ConfigManager::loadConfig(temp_config.path()));
@@ -189,6 +189,31 @@ api_key = sk-test  # inline comments are NOT supported, so this would be include
   EXPECT_EQ(config.log_level, "ERROR");
   // Default value since the commented line is ignored
   EXPECT_FALSE(config.enable_logging);
+
+  // Inline comments should now be stripped from unquoted values
+  const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
+  ASSERT_NE(openai, nullptr);
+  EXPECT_EQ(openai->api_key, "sk-test");
+}
+
+// Test parsing config with inline comments after quoted values (Ollama use
+// case)
+TEST_F(ConfigManagerTest, HandlesInlineCommentsAfterQuotedValues) {
+  TempConfigFile temp_config(R"(
+[openai]
+api_key = "ollama" # Ollama doesn't require a real key
+api_endpoint = "http://localhost:11434"
+default_model = "gpt-oss:20b" # Or any model you have pulled
+)");
+
+  ASSERT_TRUE(ConfigManager::loadConfig(temp_config.path()));
+
+  const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
+  ASSERT_NE(openai, nullptr);
+  // Inline comments after quoted values should be ignored
+  EXPECT_EQ(openai->api_key, "ollama");
+  EXPECT_EQ(openai->api_endpoint, "http://localhost:11434");
+  EXPECT_EQ(openai->default_model, "gpt-oss:20b");
 }
 
 // Test default model values
