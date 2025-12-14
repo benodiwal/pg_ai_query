@@ -321,7 +321,7 @@ jobs:
         pg_version: ["16", "17", "18"]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Install PostgreSQL ${{ matrix.pg_version }} with LLVM support
