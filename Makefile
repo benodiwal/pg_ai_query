@@ -1,6 +1,6 @@
 EXTENSION = pg_ai_query
 DATA = sql/pg_ai_query--1.0.sql
-MODULES = pg_ai_query
+# Note: We don't set MODULES here because we use CMake for compilation, not PGXS
 
 # Build directories (defined before PGXS for EXTRA_CLEAN)
 BUILD_DIR = build
@@ -9,10 +9,6 @@ TESTS_DIR = tests
 
 # Tell PGXS to clean our build directories
 EXTRA_CLEAN = $(BUILD_DIR) $(TEST_BUILD_DIR) install
-
-# Disable LLVM bitcode generation - we use CMake for compilation, not PGXS
-# This fixes build failures on PostgreSQL installations with LLVM JIT support
-with_llvm = no
 
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
