@@ -7,8 +7,8 @@ BUILD_DIR = build
 TEST_BUILD_DIR = build_tests
 TESTS_DIR = tests
 
-# Tell PGXS to clean our build directories
-EXTRA_CLEAN = $(BUILD_DIR) $(TEST_BUILD_DIR) install
+# Tell PGXS to clean our build directories and the copied extension file
+EXTRA_CLEAN = $(BUILD_DIR) $(TEST_BUILD_DIR) install pg_ai_query.so pg_ai_query.dylib
 
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)

@@ -356,6 +356,17 @@ jobs:
         run: |
           ls -la pg_ai_query.so || ls -la build/pg_ai_query.so
           echo "Build artifacts verified!"
+      - name: Test make clean removes extension file
+        run: |
+          export PATH="/usr/lib/postgresql/${{ matrix.pg_version }}/bin:$PATH"
+          echo "Verifying make clean removes pg_ai_query.so..."
+          test -f pg_ai_query.so || { echo "pg_ai_query.so not found before clean"; exit 1; }
+          make clean
+          if [ -f pg_ai_query.so ]; then
+            echo "ERROR: make clean did not remove pg_ai_query.so"
+            exit 1
+          fi
+          echo "make clean correctly removes extension file!"
 
   security-scan:
     name: Security Scan
