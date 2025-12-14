@@ -310,6 +310,53 @@ jobs:
             static-analysis.log
             clang-tidy.log
           retention-days: 30
+  # Test the root Makefile build (uses PGXS) to catch LLVM/JIT related issues
+  # This catches issues like #29 where PGXS tries to build .bc files
+  makefile-build-test:
+    name: Makefile Build (PGXS)
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        pg_version: ["16", "17", "18"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install PostgreSQL ${{ matrix.pg_version }} with LLVM support
+        run: |
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            libssl-dev \
+            libcurl4-openssl-dev \
+            pkg-config \
+            gettext \
+            libz-dev \
+            postgresql-${{ matrix.pg_version }} \
+            postgresql-server-dev-${{ matrix.pg_version }}
+      - name: Verify LLVM/JIT configuration
+        run: |
+          PG_CONFIG=/usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
+          echo "PostgreSQL version: $($PG_CONFIG --version)"
+          echo "LLVM support check:"
+          $PG_CONFIG --configure | grep -i llvm || echo "LLVM flags not in configure output"
+      - name: Test Makefile build (make)
+        run: |
+          export PATH="/usr/lib/postgresql/${{ matrix.pg_version }}/bin:$PATH"
+          echo "Testing 'make' command (uses PGXS)..."
+          make clean || true
+          make
+          echo "Makefile build succeeded!"
+      - name: Verify build output
+        run: |
+          ls -la pg_ai_query.so || ls -la build/pg_ai_query.so
+          echo "Build artifacts verified!"
+
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
