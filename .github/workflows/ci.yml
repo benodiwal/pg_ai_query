@@ -367,6 +367,19 @@ jobs:
             exit 1
           fi
           echo "make clean correctly removes extension file!"
+      - name: Test make install installs shared library
+        run: |
+          export PATH="/usr/lib/postgresql/${{ matrix.pg_version }}/bin:$PATH"
+          PG_PKGLIB=$(pg_config --pkglibdir)
+          echo "Rebuilding and testing make install..."
+          make
+          sudo make install
+          if [ ! -f "$PG_PKGLIB/pg_ai_query.so" ]; then
+            echo "ERROR: make install did not install pg_ai_query.so to $PG_PKGLIB"
+            ls -la "$PG_PKGLIB" | grep pg_ai || true
+            exit 1
+          fi
+          echo "make install correctly installs shared library to $PG_PKGLIB!"
 
   security-scan:
     name: Security Scan

@@ -40,7 +40,11 @@ $(BUILD_DIR)/CMakeCache.txt:
 	    -DCMAKE_BUILD_TYPE=Release \
 	    -DCMAKE_INSTALL_PREFIX=$(shell $(PG_CONFIG) --pkglibdir)
 
-.PHONY: all
+# Override PGXS install to also install the shared library via CMake
+install: $(TARGET_LIB)
+	cmake --install $(BUILD_DIR)
+
+.PHONY: all install
 
 # Formatting
 SRC_FILES = $(shell find . -type f \
