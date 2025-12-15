@@ -240,3 +240,14 @@ This project is licensed under the terms specified in the [LICENSE](LICENSE) fil
 - **Documentation**: https://benodiwal.github.io/pg_ai_query/
 - **Issues**: [GitHub Issues](https://github.com/benodiwal/pg_ai_query/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/benodiwal/pg_ai_query/discussions)
+
+## Please Consider Giving the Repo a Star ⭐
+
+<!-- https://star-history.com/#tristanisham/zvm&Timeline -->
+<a href="https://github.com/benodiwal/pg_ai_query">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=benodiwal/pg_ai_query&type=Timeline&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=benodiwal/pg_ai_query&type=Timeline" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=benodiwal/pg_ai_query&type=Timeline" />
+  </picture>
+</a>
