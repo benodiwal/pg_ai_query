@@ -51,7 +51,7 @@ jobs:
           ref: ${{ steps.pr.outputs.head_ref }}
 
       - name: Run Claude Code
-        uses: anthropics/claude-code-action@f0c8eb29807907de7f5412d04afceb5e24817127 # v1.0.23
+        uses: anthropics/claude-code-action@7145c3e0510bcdbdd29f67cc4a8c1958f1acfa2f # v1.0.27
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           model: ${{ vars.CLAUDE_MODEL || 'claude-sonnet-4-20250514' }}
