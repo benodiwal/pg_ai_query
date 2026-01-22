@@ -8,7 +8,29 @@
 namespace pg_ai {
 
 nlohmann::json QueryParser::extractSQLFromResponse(const std::string& text) {
-  // Try to find JSON in markdown code block
+  // ------------------------------------------------------------
+  // Attempt to extract JSON embedded in markdown code blocks.
+  //
+  // AI/LLM responses often wrap structured output like JSON
+  // inside markdown fences, e.g.:
+  //
+  // ```json
+  // {
+  //   "sql": "SELECT * FROM users",
+  //   "explanation": "Fetch all users"
+  // }
+  // ```
+  //
+  // Regex explanation:
+  // ```              -> opening markdown fence
+  // (?:json)?        -> optional "json" language identifier
+  // \s*              -> optional whitespace/newlines
+  // (\{[\s\S]*?\})   -> CAPTURE GROUP: JSON object {...}
+  // \s*
+  // ```              -> closing markdown fence
+  //
+  // This allows us to safely extract the raw JSON for parsing.
+  // ------------------------------------------------------------
   std::regex json_block(R"(```(?:json)?\s*(\{[\s\S]*?\})\s*```)",
                         std::regex::icase);
   std::smatch match;
@@ -28,11 +50,28 @@ nlohmann::json QueryParser::extractSQLFromResponse(const std::string& text) {
     // Continue to fallback
   }
 
-  // Fallback: treat as raw SQL
+  // ------------------------------------------------------------
+  // Fallback: Treat the entire response as raw SQL text.
+  //
+  // This ensures we still return a usable structure even when
+  // the AI output is not valid JSON.
+  // ------------------------------------------------------------
   return {{"sql", text}, {"explanation", "Raw LLM output (no JSON detected)"}};
 }
 
 bool QueryParser::accessesSystemTables(const std::string& sql) {
+  // ------------------------------------------------------------
+  // Detect access to system / catalog tables.
+  //
+  // Why this is blocked:
+  // - Prevents exposure of internal database metadata
+  // - Avoids security risks and privilege escalation
+  // - Ensures AI-generated queries only target user data
+  //
+  // Tables checked:
+  // - INFORMATION_SCHEMA (SQL-standard metadata)
+  // - PG_CATALOG (PostgreSQL internal catalog)
+  // ------------------------------------------------------------
   std::string upper_sql = sql;
   std::transform(upper_sql.begin(), upper_sql.end(), upper_sql.begin(),
                  ::toupper);
@@ -42,16 +81,26 @@ bool QueryParser::accessesSystemTables(const std::string& sql) {
 
 bool QueryParser::hasErrorIndicators(const std::string& explanation,
                                      const std::vector<std::string>& warnings) {
+  // ------------------------------------------------------------
+  // Scan the AI explanation text for phrases that indicate
+  // query generation failure.
+  //
+  // These keywords are based on common LLM failure responses
+  // and database-style error messages.
+  // ------------------------------------------------------------
   std::string lower_explanation = explanation;
   std::transform(lower_explanation.begin(), lower_explanation.end(),
                  lower_explanation.begin(), ::tolower);
 
   bool has_error =
+      // Explicit AI failure statements
       lower_explanation.find("cannot generate query") != std::string::npos ||
       lower_explanation.find("cannot create query") != std::string::npos ||
       lower_explanation.find("unable to generate") != std::string::npos ||
+      // Missing schema elements
       lower_explanation.find("does not exist") != std::string::npos ||
       lower_explanation.find("do not exist") != std::string::npos ||
+      // Database-style error messages
       lower_explanation.find("table not found") != std::string::npos ||
       lower_explanation.find("column not found") != std::string::npos ||
       lower_explanation.find("no such table") != std::string::npos ||
@@ -60,7 +109,12 @@ bool QueryParser::hasErrorIndicators(const std::string& explanation,
   if (has_error) {
     return true;
   }
-
+  // ------------------------------------------------------------
+  // Also scan warnings for error indicators.
+  //
+  // Some LLMs place failure signals inside warnings instead of
+  // the main explanation field.
+  // ------------------------------------------------------------
   for (const auto& warning : warnings) {
     std::string lower_warning = warning;
     std::transform(lower_warning.begin(), lower_warning.end(),
@@ -76,12 +130,23 @@ bool QueryParser::hasErrorIndicators(const std::string& explanation,
 }
 
 QueryResult QueryParser::parseQueryResponse(const std::string& response_text) {
+  // Parse SQL, explanation, and metadata from the AI response
   nlohmann::json j = extractSQLFromResponse(response_text);
   std::string sql = j.value("sql", "");
   std::string explanation = j.value("explanation", "");
 
   std::vector<std::string> warnings_vec;
   try {
+    // ------------------------------------------------------------
+    // Extract warnings from JSON.
+    //
+    // Supported formats:
+    // 1. Array:   "warnings": ["msg1", "msg2"]
+    // 2. String:  "warnings": "single warning"
+    //
+    // This flexible handling improves robustness against
+    // varying AI output formats.
+    // ------------------------------------------------------------
     if (j.contains("warnings")) {
       if (j["warnings"].is_array()) {
         warnings_vec = j["warnings"].get<std::vector<std::string>>();
