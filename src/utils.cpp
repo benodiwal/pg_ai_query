@@ -1,8 +1,11 @@
 #include "./include/utils.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <fstream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include <nlohmann/json.hpp>
@@ -48,7 +51,13 @@ std::string read_file_or_throw(const std::string& filepath) {
 // CR-someday @benodiwal: This is the basic version of API Error formatting,
 // there is a lot of place for improvement. Currently it focuses on wrong model
 // names in conf relate errors.
-std::string formatAPIError(const std::string& raw_error) {
+
+// API error formatting,
+//  checks for rate limit, authentication, quota, timeout, service
+//  unavailability, model not found errors.
+std::string formatAPIError(const std::string& provider,
+                           int status_code,
+                           const std::string& raw_error) {
   std::string error_to_parse = raw_error;
 
   size_t json_start = raw_error.find('{');
@@ -62,8 +71,59 @@ std::string formatAPIError(const std::string& raw_error) {
     if (error_json.contains("error")) {
       auto error_obj = error_json["error"];
 
-      if (error_obj.contains("type") &&
-          error_obj["type"] == "not_found_error") {
+      std::string error_type;
+      std::string error_message;
+
+      if (error_obj.contains("type")) {
+        error_type = error_obj["type"];
+      }
+
+      if (error_obj.contains("message")) {
+        error_message = error_obj["message"];
+      }
+
+      // converting to lower case for easier checks
+      std::string error_lower = error_message;
+      std::transform(error_lower.begin(), error_lower.end(),
+                     error_lower.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+
+      // rate limit errors(429)
+      if (status_code == 429 || error_type == "rate_limit_error" ||
+          error_lower.find("rate") != std::string::npos) {
+        return "Rate limit exceeded. Please wait before making more requests.";
+      }
+
+      // authentication errors(401)
+      if (status_code == 401 || error_type == "authentication_error" ||
+          error_lower.find("invalid_api_key") != std::string::npos ||
+          error_lower.find("unauthorized") != std::string::npos) {
+        return "Invalid API key for " + provider +
+               ". "
+               "Please check your ~/.pg_ai.config file.";
+      }
+
+      // quota errors(402)
+      if (status_code == 402 || error_type == "payment_required" ||
+          error_lower.find("quota") != std::string::npos ||
+          error_lower.find("insufficient_quota") != std::string::npos) {
+        return "API quota exceeded. Check your " + provider + " account usage.";
+      }
+
+      // timeout errors(408)
+      if (status_code == 408 || error_type == "timeout_error" ||
+          error_lower.find("timeout") != std::string::npos ||
+          error_lower.find("timed out") != std::string::npos) {
+        return "Request timed out. Try increasing request_timeout_ms in "
+               "config.";
+      }
+
+      if (status_code == 503 || status_code == 502 || status_code == 504) {
+        return provider +
+               " service is temporarily unavailable. Try again later.";
+      }
+
+      if (error_type == "not_found_error") {
         if (error_obj.contains("message")) {
           std::string msg = error_obj["message"];
 
@@ -84,11 +144,20 @@ std::string formatAPIError(const std::string& raw_error) {
                "ensure you're using a valid model name.";
       }
 
-      if (error_obj.contains("message")) {
-        return error_obj["message"];
+      if (status_code >= 400 && status_code < 500) {
+        if (!error_message.empty()) {
+          return "The request was invalid (" + std::to_string(status_code) +
+                 "): " + error_message  ;
+        }
+        return "The request was invalid.";
+      }
+
+      if (!error_message.empty()) {
+        return error_message;
       }
     }
   } catch (const nlohmann::json::exception&) {
+    // Ignore JSON parsing errors and return raw error
   }
 
   return raw_error;
