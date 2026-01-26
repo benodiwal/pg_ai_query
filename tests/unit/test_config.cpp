@@ -96,20 +96,14 @@ TEST_F(ConfigManagerTest, LoadsCustomEndpoints) {
   EXPECT_EQ(anthropic->api_endpoint, "https://custom-anthropic.example.com");
 }
 
-// Test loading non-existent file uses defaults
-TEST_F(ConfigManagerTest, UsesDefaultsForNonexistentFile) {
-  ASSERT_TRUE(ConfigManager::loadConfig("/nonexistent/path/config.ini"));
-
-  const auto& config = ConfigManager::getConfig();
-
-  // Should use defaults
-  EXPECT_EQ(config.log_level, "INFO");
-  EXPECT_FALSE(config.enable_logging);
-  EXPECT_EQ(config.request_timeout_ms, 30000);
-  EXPECT_EQ(config.max_retries, 3);
-  EXPECT_TRUE(config.enforce_limit);
-  EXPECT_EQ(config.default_limit, 1000);
+// Test loading non-existent file fails 
+TEST_F(ConfigManagerTest, ThrowsForNonexistentFile) {
+  EXPECT_THROW(
+      ConfigManager::loadConfig("/nonexistent/path/config.ini"),
+      std::runtime_error
+  );
 }
+
 
 // Test provider enum to string conversion
 TEST_F(ConfigManagerTest, ProviderToString) {
