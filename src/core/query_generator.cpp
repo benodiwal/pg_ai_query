@@ -133,7 +133,7 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
           .suggested_visualization = "",
           .success = false,
           .error_message =
-              "AI API error: " + utils::formatAPIError(result.error_message())};
+              "AI API error: " + utils::formatAPIError("Gemini" , ai_result.status_code , ai_result.error_message())};
     }
 
     if (result.text.empty()) {
@@ -637,7 +637,7 @@ ExplainResult QueryGenerator::explainQuery(const ExplainRequest& request) {
 
     if (!ai_result) {
       result.error_message =
-          "AI API error: " + utils::formatAPIError(ai_result.error_message());
+          "AI API error: " + utils::formatAPIError("Gemini" , ai_result.status_code , ai_result.error_message());
       return result;
     }
 
