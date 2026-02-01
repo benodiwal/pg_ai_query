@@ -9,7 +9,7 @@ namespace pg_ai {
 
 /**
  * @brief Request structure for natural language query generation
- * 
+ *
  * Contains the input parameters needed to generate a SQL query from
  * natural language using AI providers.
  */
@@ -21,7 +21,7 @@ struct QueryRequest {
 
 /**
  * @brief Result of SQL query generation from natural language
- * 
+ *
  * Contains the generated SQL query along with metadata including
  * explanations, warnings, and success status.
  */
@@ -37,7 +37,7 @@ struct QueryResult {
 
 /**
  * @brief Information about a database table
- * 
+ *
  * Contains basic metadata about a table including name, schema,
  * type, and estimated row count.
  */
@@ -50,7 +50,7 @@ struct TableInfo {
 
 /**
  * @brief Information about a table column
- * 
+ *
  * Contains complete metadata about a database column including
  * data type, constraints, and foreign key relationships.
  */
@@ -67,7 +67,7 @@ struct ColumnInfo {
 
 /**
  * @brief Detailed information about a specific table
- * 
+ *
  * Contains comprehensive schema information for a table including
  * all columns, indexes, and retrieval status.
  */
@@ -82,7 +82,7 @@ struct TableDetails {
 
 /**
  * @brief Complete database schema information
- * 
+ *
  * Contains information about all accessible tables in the database.
  */
 struct DatabaseSchema {
@@ -93,7 +93,7 @@ struct DatabaseSchema {
 
 /**
  * @brief Request structure for query performance analysis
- * 
+ *
  * Contains the SQL query to analyze and optional API configuration.
  */
 struct ExplainRequest {
@@ -104,7 +104,7 @@ struct ExplainRequest {
 
 /**
  * @brief Result of query performance analysis
- * 
+ *
  * Contains both raw PostgreSQL EXPLAIN output and AI-generated
  * performance analysis with optimization suggestions.
  */
@@ -118,25 +118,27 @@ struct ExplainResult {
 
 /**
  * @brief Main class for SQL query generation and database schema operations
- * 
- * QueryGenerator provides the core functionality for converting natural language
- * to SQL queries using AI providers (OpenAI, Anthropic, Gemini). It also handles
- * database schema retrieval and query performance analysis.
- * 
+ *
+ * QueryGenerator provides the core functionality for converting natural
+ * language to SQL queries using AI providers (OpenAI, Anthropic, Gemini). It
+ * also handles database schema retrieval and query performance analysis.
+ *
  * All methods are static and thread-safe.
  */
 class QueryGenerator {
  public:
   /**
    * @brief Generate SQL query from natural language description
-   * 
-   * Converts a natural language query description into executable SQL by sending
-   * the request to an AI provider along with database schema context.
-   * 
-   * @param request The query request containing natural language input and options
+   *
+   * Converts a natural language query description into executable SQL by
+   * sending the request to an AI provider along with database schema context.
+   *
+   * @param request The query request containing natural language input and
+   * options
    * @return QueryResult containing the generated SQL query and metadata
-   * @throws std::runtime_error if database connection fails or AI API call fails
-   * 
+   * @throws std::runtime_error if database connection fails or AI API call
+   * fails
+   *
    * @example
    * QueryRequest req;
    * req.natural_language = "show all users with age greater than 25";
@@ -150,13 +152,13 @@ class QueryGenerator {
 
   /**
    * @brief Retrieve list of all accessible tables in the database
-   * 
+   *
    * Queries PostgreSQL's information_schema to get metadata about all
    * tables accessible to the current user.
-   * 
+   *
    * @return DatabaseSchema containing all visible tables and their metadata
    * @throws std::runtime_error if database query fails
-   * 
+   *
    * @example
    * auto schema = QueryGenerator::getDatabaseTables();
    * if (schema.success) {
@@ -169,15 +171,15 @@ class QueryGenerator {
 
   /**
    * @brief Get detailed information about a specific table
-   * 
+   *
    * Retrieves complete schema information for a table including all columns,
    * data types, constraints, and indexes.
-   * 
+   *
    * @param table_name Name of the table to inspect
    * @param schema_name Schema containing the table (defaults to "public")
    * @return TableDetails containing complete table schema information
    * @throws std::runtime_error if database query fails
-   * 
+   *
    * @example
    * auto details = QueryGenerator::getTableDetails("users", "public");
    * if (details.success) {
@@ -192,15 +194,15 @@ class QueryGenerator {
 
   /**
    * @brief Analyze query performance and get optimization suggestions
-   * 
-   * Executes EXPLAIN (ANALYZE, VERBOSE, COSTS, SETTINGS, BUFFERS, FORMAT JSON) 
-   * on the provided SQL query and sends the output to an AI provider for analysis 
-   * and optimization recommendations.
-   * 
+   *
+   * Executes EXPLAIN (ANALYZE, VERBOSE, COSTS, SETTINGS, BUFFERS, FORMAT JSON)
+   * on the provided SQL query and sends the output to an AI provider for
+   * analysis and optimization recommendations.
+   *
    * @param request The explain request containing SQL query to analyze
    * @return ExplainResult with EXPLAIN output and AI-generated insights
    * @throws std::runtime_error if query execution fails or AI API call fails
-   * 
+   *
    * @example
    * ExplainRequest req;
    * req.query_text = "SELECT * FROM users WHERE age > 25";
@@ -214,10 +216,10 @@ class QueryGenerator {
 
   /**
    * @brief Format database schema as text for AI consumption
-   * 
+   *
    * Converts a DatabaseSchema structure into a formatted string suitable
    * for including in prompts sent to AI models.
-   * 
+   *
    * @param schema The database schema to format
    * @return Formatted string representation of the schema
    */
@@ -225,10 +227,10 @@ class QueryGenerator {
 
   /**
    * @brief Format table details as text for AI consumption
-   * 
+   *
    * Converts a TableDetails structure into a formatted string suitable
    * for including in prompts sent to AI models.
-   * 
+   *
    * @param details The table details to format
    * @return Formatted string representation of the table details
    */
@@ -237,7 +239,7 @@ class QueryGenerator {
  private:
   /**
    * @brief Build AI prompt with schema context and query request
-   * 
+   *
    * @param request Query request containing natural language description
    * @return Complete prompt string ready for AI API
    */
@@ -245,7 +247,7 @@ class QueryGenerator {
 
   /**
    * @brief Log model configuration settings
-   * 
+   *
    * @param model_name Name of the AI model being used
    * @param max_tokens Maximum tokens for response
    * @param temperature Temperature setting for response randomness

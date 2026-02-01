@@ -8,7 +8,7 @@ namespace pg_ai::config {
 
 /**
  * @brief Configuration constants and default values
- * 
+ *
  * Contains all default settings including provider names, API endpoints,
  * config file paths, and default model parameters.
  */
@@ -48,14 +48,14 @@ constexpr double DEFAULT_TEMPERATURE = 0.7;
 
 /**
  * @brief Enumeration of supported AI providers
- * 
+ *
  * Represents the available AI providers for query generation and analysis.
  */
 enum class Provider { OPENAI, ANTHROPIC, GEMINI, UNKNOWN };
 
 /**
  * @brief Configuration for a specific AI provider
- * 
+ *
  * Contains all settings needed to interact with a particular AI provider
  * including API keys, model selection, and endpoint configuration.
  */
@@ -77,7 +77,7 @@ struct ProviderConfig {
 
 /**
  * @brief Global configuration for the pg_ai_query extension
- * 
+ *
  * Contains all configurable settings for the extension including provider
  * configurations, logging options, query generation behavior, and response
  * formatting preferences. Typically loaded from ~/.pg_ai.config.
@@ -108,27 +108,28 @@ struct Configuration {
 
 /**
  * @brief Manages loading and accessing configuration settings
- * 
+ *
  * Singleton-style class that handles loading configuration from files
  * or environment variables and provides access to configuration settings
  * throughout the application. All methods are static and thread-safe.
- * 
+ *
  * The configuration file uses INI format with sections: [general], [query],
  * [response], [openai], [anthropic], and [gemini].
- * 
+ *
  * @example
  * // Load configuration from default location
  * ConfigManager::loadConfig();
- * 
+ *
  * // Access configuration
  * const auto& config = ConfigManager::getConfig();
  * if (config.show_explanation) {
  *   // Include explanation in output
  * }
- * 
+ *
  * // Get provider-specific config
- * const auto* openai_config = ConfigManager::getProviderConfig(Provider::OPENAI);
- * if (openai_config && !openai_config->api_key.empty()) {
+ * const auto* openai_config =
+ * ConfigManager::getProviderConfig(Provider::OPENAI); if (openai_config &&
+ * !openai_config->api_key.empty()) {
  *   // Use OpenAI provider
  * }
  */
@@ -162,15 +163,16 @@ class ConfigManager {
 
   /**
    * @brief Convert provider enum to string
-   * 
+   *
    * @param provider Provider enum value to convert
-   * @return String representation ("openai", "anthropic", "gemini", or "unknown")
+   * @return String representation ("openai", "anthropic", "gemini", or
+   * "unknown")
    */
   static std::string providerToString(Provider provider);
 
   /**
    * @brief Convert string to provider enum
-   * 
+   *
    * @param provider_str Provider name as string
    * @return Provider enum value (UNKNOWN if string doesn't match any provider)
    */
@@ -187,7 +189,7 @@ class ConfigManager {
 
   /**
    * @brief Parse configuration file content
-   * 
+   *
    * @param content INI file content to parse
    * @return true if parsing succeeded, false otherwise
    */
@@ -195,14 +197,14 @@ class ConfigManager {
 
   /**
    * @brief Get home directory path
-   * 
+   *
    * @return String containing the user's home directory path
    */
   static std::string getHomeDirectory();
 
   /**
    * @brief Get mutable provider config (for internal use)
-   * 
+   *
    * @param provider Provider type to retrieve
    * @return Pointer to mutable provider config, or nullptr if not found
    */
@@ -210,7 +212,7 @@ class ConfigManager {
 
   /**
    * @brief Load configuration from environment variables
-   * 
+   *
    * Reads environment variables like PG_AI_OPENAI_API_KEY to override
    * configuration file settings.
    */
