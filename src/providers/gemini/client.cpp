@@ -116,55 +116,111 @@ GeminiResponse GeminiClient::parse_response(const std::string& body,
   return response;
 }
 
+namespace {
+// RAII wrapper for CURL handle
+class CurlHandle {
+ public:
+  CurlHandle() : handle_(curl_easy_init()) {
+    if (!handle_) {
+      throw std::runtime_error("Failed to initialize CURL");
+    }
+  }
+
+  ~CurlHandle() {
+    if (handle_) {
+      curl_easy_cleanup(handle_);
+    }
+  }
+
+  // No copy
+  CurlHandle(const CurlHandle&) = delete;
+  CurlHandle& operator=(const CurlHandle&) = delete;
+
+  // Allow move
+  CurlHandle(CurlHandle&& other) noexcept : handle_(other.handle_) {
+    other.handle_ = nullptr;
+  }
+
+  CURL* get() const { return handle_; }
+  operator CURL*() const { return handle_; }
+
+ private:
+  CURL* handle_;
+};
+
+// RAII wrapper for curl_slist
+class CurlSlist {
+ public:
+  CurlSlist() : list_(nullptr) {}
+
+  ~CurlSlist() {
+    if (list_) {
+      curl_slist_free_all(list_);
+    }
+  }
+
+  // Throws runtime error on allocation failure
+  void append(const std::string& value) {
+    curl_slist* new_list = curl_slist_append(list_, value.c_str());
+    if (!new_list) {
+      throw std::runtime_error("Failed to append CURL header");
+    }
+    list_ = new_list;
+  }
+
+  curl_slist* get() const { return list_; }
+
+  CurlSlist(const CurlSlist&) = delete;
+  CurlSlist& operator=(const CurlSlist&) = delete;
+
+ private:
+  curl_slist* list_;
+};
+}  // namespace
+
 GeminiResponse GeminiClient::make_http_request(const std::string& url,
                                                const std::string& body) {
-  CURL* curl = curl_easy_init();
   GeminiResponse response;
 
-  if (!curl) {
+  try {
+    CurlHandle curl;
+    CurlSlist headers;
+
+    std::string response_body;
+    long http_code = 0;
+
+    // Set URL
+    curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
+
+    // Set headers
+    headers.append("Content-Type: application/json");
+    headers.append("x-goog-api-key: " + api_key_);
+    curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers.get());
+
+    // Set POST data
+    curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, body.c_str());
+
+    // Set write callback
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &response_body);
+
+    // Perform request
+    CURLcode res = curl_easy_perform(curl.get());
+
+    if (res != CURLE_OK) {
+      response.success = false;
+      response.error_message =
+          std::string("CURL error: ") + curl_easy_strerror(res);
+    } else {
+      curl_easy_getinfo(curl.get(), CURLINFO_RESPONSE_CODE, &http_code);
+      response = parse_response(response_body, static_cast<int>(http_code));
+    }
+    return response;
+  } catch (const std::exception& e) {
     response.success = false;
-    response.error_message = "Failed to initialize CURL";
+    response.error_message = e.what();
     return response;
   }
-
-  std::string response_body;
-  long http_code = 0;
-
-  // Set URL
-  curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-
-  // Set headers
-  struct curl_slist* headers = nullptr;
-  headers = curl_slist_append(headers, "Content-Type: application/json");
-
-  std::string api_key_header = "x-goog-api-key: " + api_key_;
-  headers = curl_slist_append(headers, api_key_header.c_str());
-
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
-  // Set POST data
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
-
-  // Set write callback
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_body);
-
-  // Perform request
-  CURLcode res = curl_easy_perform(curl);
-
-  if (res != CURLE_OK) {
-    response.success = false;
-    response.error_message =
-        std::string("CURL error: ") + curl_easy_strerror(res);
-  } else {
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-    response = parse_response(response_body, static_cast<int>(http_code));
-  }
-
-  curl_slist_free_all(headers);
-  curl_easy_cleanup(curl);
-
-  return response;
 }
 
 GeminiResponse GeminiClient::generate_text(const GeminiRequest& request) {
