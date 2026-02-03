@@ -32,6 +32,7 @@ You can use any valid OpenAI model name. Here is a comparison of common models:
     - CMake 3.16+
     - C++20 compatible compiler
     - API key from OpenAI, Anthropic, or Google (Gemini)
+    - If building PostgreSQL from source: use `./configure --enable-nls` (required for extension compilation)
 
 2.  **Build and Install**:
     ```bash
