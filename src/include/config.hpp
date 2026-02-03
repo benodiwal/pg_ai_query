@@ -63,19 +63,70 @@ struct Configuration {
   std::vector<ProviderConfig> providers;
 
   // General settings
+
+  /**
+  * Minimum level for log messages: DEBUG, INFO, WARNING, ERROR
+  * Default: INFO
+  * Optional
+  */
   std::string log_level;
+
+  /**
+   * Enable/disable all logging output
+   * Default: false
+   */
   bool enable_logging;
+
+  /**
+   * Timeout for AI API requests in milliseconds
+   * Default: 30000 (30 seconds)
+   */
   int request_timeout_ms;
+
+  /**
+   * Maximum retry attempts for failed API requests
+   * Default: 3
+   */
   int max_retries;
 
   // Query generation settings
+
+  /**
+   * Always add LIMIT clause to SELECT queries
+   * Default: true
+   */
   bool enforce_limit;
+
+  /**
+   * Default row limit when none specified
+   * Default: 1000
+   */
   int default_limit;
 
   // Response format settings
+
+  /**
+   * Include detailed explanation of what the query does
+   * Default: true
+   */
   bool show_explanation;
+
+  /**
+   * Include warnings about performance, security, or data implications
+   * Default: true
+   */
   bool show_warnings;
+
+/**
+ * Include suggested visualization type for the query results
+ * Default: false
+ */
   bool show_suggested_visualization;
+
+  /**
+   * Return structured JSON instead of plain SQL
+   * Default: false
+   */
   bool use_formatted_response;
 
   // Default constructor with sensible defaults

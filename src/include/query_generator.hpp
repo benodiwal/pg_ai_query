@@ -8,18 +8,83 @@
 namespace pg_ai {
 
 struct QueryRequest {
+
+  /**
+   * The natural language description of the desired query
+   * Default: required
+   */
   std::string natural_language;
+
+  /**
+   * OpenAI or Anthropic API key (uses config if not provided)
+   * Default: NULL
+   */
   std::string api_key;
+
+  /**
+   * AI provider: 'openai', 'anthropic', or 'auto'
+   * Default: 'auto'
+   */
   std::string provider;
 };
 
 struct QueryResult {
+
+   /**
+   * Generated SQL query string produced by the AI.
+   * 
+   * Default: Empty string
+   */
   std::string generated_query;
+
+    /**
+   * Human-readable explanation describing how the SQL query works
+   * and how it maps to the original natural language request.
+
+   * Default: Empty string
+\
+   */
   std::string explanation;
+
+    /**
+   * List of warnings related to the generated query.
+   *
+   * Default: Empty vector
+   */
   std::vector<std::string> warnings;
+   /**
+   * Indicates whether a LIMIT clause was automatically applied
+   * to the generated query.
+   *
+   * Default: false
+  
+   */
   bool row_limit_applied;
+   /**
+   * Suggested visualization type based on query structure.
+   *
+   * Possible values:
+   *  - "table"
+   *  - "bar"
+   *  - "line"
+   *  - "pie"
+   *
+   * Default: Empty string
+   */
   std::string suggested_visualization;
+   /**
+   * Indicates whether query generation was successful.
+   *
+   * Default: false
+
+   */
   bool success;
+
+   /**
+   * Error message describing the reason for failure.
+   *
+   * Default: Empty string
+   */
   std::string error_message;
 };
 
