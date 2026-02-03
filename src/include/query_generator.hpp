@@ -8,7 +8,6 @@
 namespace pg_ai {
 
 struct QueryRequest {
-
   /**
    * The natural language description of the desired query
    * Default: required
@@ -29,38 +28,37 @@ struct QueryRequest {
 };
 
 struct QueryResult {
-
-   /**
+  /**
    * Generated SQL query string produced by the AI.
-   * 
+   *
    * Default: Empty string
    */
   std::string generated_query;
 
-    /**
-   * Human-readable explanation describing how the SQL query works
-   * and how it maps to the original natural language request.
+  /**
+ * Human-readable explanation describing how the SQL query works
+ * and how it maps to the original natural language request.
 
-   * Default: Empty string
+ * Default: Empty string
 \
-   */
+ */
   std::string explanation;
 
-    /**
+  /**
    * List of warnings related to the generated query.
    *
    * Default: Empty vector
    */
   std::vector<std::string> warnings;
-   /**
-   * Indicates whether a LIMIT clause was automatically applied
-   * to the generated query.
-   *
-   * Default: false
-  
-   */
+  /**
+  * Indicates whether a LIMIT clause was automatically applied
+  * to the generated query.
+  *
+  * Default: false
+
+  */
   bool row_limit_applied;
-   /**
+  /**
    * Suggested visualization type based on query structure.
    *
    * Possible values:
@@ -72,15 +70,15 @@ struct QueryResult {
    * Default: Empty string
    */
   std::string suggested_visualization;
-   /**
-   * Indicates whether query generation was successful.
-   *
-   * Default: false
+  /**
+  * Indicates whether query generation was successful.
+  *
+  * Default: false
 
-   */
+  */
   bool success;
 
-   /**
+  /**
    * Error message describing the reason for failure.
    *
    * Default: Empty string

@@ -65,10 +65,10 @@ struct Configuration {
   // General settings
 
   /**
-  * Minimum level for log messages: DEBUG, INFO, WARNING, ERROR
-  * Default: INFO
-  * Optional
-  */
+   * Minimum level for log messages: DEBUG, INFO, WARNING, ERROR
+   * Default: INFO
+   * Optional
+   */
   std::string log_level;
 
   /**
@@ -117,10 +117,10 @@ struct Configuration {
    */
   bool show_warnings;
 
-/**
- * Include suggested visualization type for the query results
- * Default: false
- */
+  /**
+   * Include suggested visualization type for the query results
+   * Default: false
+   */
   bool show_suggested_visualization;
 
   /**
