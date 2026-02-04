@@ -62,7 +62,7 @@ Parameters:
 Returns: JSON object with complete table schema information
 Example: SELECT get_table_details(''orders'', ''public'');';
 
--- Explain query function: Runs explain analyze and provides AI-generated explanation
+-- Explain query function: Runs EXPLAIN ANALYZE and provides AI-generated explanation
 CREATE OR REPLACE FUNCTION explain_query(
     query_text text,
     api_key text DEFAULT NULL,
@@ -80,7 +80,7 @@ SECURITY DEFINER;
 -- SELECT explain_query('SELECT * FROM products ORDER BY price DESC LIMIT 10', 'your-api-key-here', 'openai');
 
 COMMENT ON FUNCTION explain_query(text, text, text) IS
-'Runs explain analyze on a query and returns an AI-generated explanation of the execution plan, performance insights, and optimization suggestions.
+'Runs EXPLAIN ANALYZE on a query and returns an AI-generated explanation of the execution plan, performance insights, and optimization suggestions.
 Parameters:
 - query_text: SQL query to analyze
 - api_key: API key for the AI provider (NULL to use config file)
