@@ -20,21 +20,6 @@ LANGUAGE C;
 -- SELECT generate_query('Show me all users', 'your-api-key-here', 'openai');
 -- SELECT generate_query('Show me all users', 'your-api-key-here', 'anthropic');
 
-COMMENT ON FUNCTION generate_query(text) IS
-'Generate SQL query from natural language using configured AI provider.
-Parameters:
-- natural_language_query: Natural language description of desired query
-Returns: Generated SQL query string
-Example: SELECT generate_query(''show all users with email ending in gmail.com'');';
-
-COMMENT ON FUNCTION generate_query(text, text) IS
-'Generate SQL query with custom API key.
-Parameters:
-- natural_language_query: Natural language description of desired query
-- api_key: API key for the AI provider (overrides config file)
-Returns: Generated SQL query string
-Example: SELECT generate_query(''show all active users'', ''sk-...'');';
-
 COMMENT ON FUNCTION generate_query(text, text, text) IS
 'Generate a PostgreSQL SELECT query from natural language description with automatic database schema discovery.
 Parameters:
@@ -69,13 +54,6 @@ COMMENT ON FUNCTION get_database_tables() IS
 Returns: JSON array containing table name, schema, type, and estimated row count for each table
 Example: SELECT get_database_tables();';
 
-COMMENT ON FUNCTION get_table_details(text) IS
-'Returns detailed information about a specific table in the public schema.
-Parameters:
-- table_name: Name of the table to inspect
-Returns: JSON object with columns (data types, constraints, foreign keys) and indexes
-Example: SELECT get_table_details(''users'');';
-
 COMMENT ON FUNCTION get_table_details(text, text) IS
 'Returns detailed JSON information about a specific table including columns with their data types, constraints, foreign keys, and indexes.
 Parameters:
@@ -100,21 +78,6 @@ SECURITY DEFINER;
 -- SELECT explain_query('SELECT * FROM users WHERE created_at > NOW() - INTERVAL ''7 days''');
 -- SELECT explain_query('SELECT u.name, COUNT(o.id) FROM users u LEFT JOIN orders o ON u.id = o.user_id GROUP BY u.id', 'your-api-key-here');
 -- SELECT explain_query('SELECT * FROM products ORDER BY price DESC LIMIT 10', 'your-api-key-here', 'openai');
-
-COMMENT ON FUNCTION explain_query(text) IS
-'Analyze query performance and get AI-generated optimization suggestions.
-Parameters:
-- query_text: SQL query to analyze
-Returns: JSON with raw explain output and AI-generated performance insights
-Example: SELECT explain_query(''SELECT * FROM users WHERE created_at > NOW() - INTERVAL ''''7 days'''''');';
-
-COMMENT ON FUNCTION explain_query(text, text) IS
-'Analyze query performance with custom API key.
-Parameters:
-- query_text: SQL query to analyze
-- api_key: API key for the AI provider (overrides config file)
-Returns: JSON with raw explain output and AI-generated performance insights
-Example: SELECT explain_query(''SELECT COUNT(*) FROM orders GROUP BY status'', ''sk-...'');';
 
 COMMENT ON FUNCTION explain_query(text, text, text) IS
 'Runs explain analyze on a query and returns an AI-generated explanation of the execution plan, performance insights, and optimization suggestions.
