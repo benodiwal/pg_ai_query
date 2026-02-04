@@ -54,7 +54,7 @@ TEST_F(ResponseFormatterTest, PlainTextBasicQuery) {
 
   std::string output = ResponseFormatter::formatResponse(result, config);
 
-  EXPECT_EQ(output, "SELECT * FROM users");
+  EXPECT_EQ(output, "-- Query:\nSELECT * FROM users");
 }
 
 // Test plain text output with explanation
