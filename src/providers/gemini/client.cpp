@@ -117,7 +117,6 @@ GeminiResponse GeminiClient::parse_response(const std::string& body,
 }
 
 namespace {
-// RAII wrapper for CURL handle
 class CurlHandle {
  public:
   CurlHandle() : handle_(curl_easy_init()) {
@@ -132,11 +131,9 @@ class CurlHandle {
     }
   }
 
-  // No copy
   CurlHandle(const CurlHandle&) = delete;
   CurlHandle& operator=(const CurlHandle&) = delete;
 
-  // Allow move
   CurlHandle(CurlHandle&& other) noexcept : handle_(other.handle_) {
     other.handle_ = nullptr;
   }
@@ -148,7 +145,6 @@ class CurlHandle {
   CURL* handle_;
 };
 
-// RAII wrapper for curl_slist
 class CurlSlist {
  public:
   CurlSlist() : list_(nullptr) {}
