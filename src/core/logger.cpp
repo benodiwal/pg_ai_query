@@ -7,7 +7,7 @@ namespace pg_ai::logger {
 
 // Static flag for log level filtering
 LogLevel Logger::current_level = LogLevel::LOG_INFO;
-bool Logger::logging_enabled = true;
+bool Logger::logging_enabled = false;
 
 void Logger::set_level(LogLevel level) {
   current_level = level;
@@ -60,9 +60,9 @@ void Logger::log(LogLevel level,
       break;
   }
 
-  elog(pg_level, "%s %s", prefix.c_str(), message.c_str());
+  elog(pg_level, "[pg_ai_query] %s %s", prefix.c_str(), message.c_str());
 #else
-  std::cerr << prefix << " " << message << std::endl;
+  std::cerr << prefix << " [pg_ai_query " << message << std::endl;
 #endif
 }
 
