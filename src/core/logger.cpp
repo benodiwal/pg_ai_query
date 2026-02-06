@@ -62,25 +62,25 @@ void Logger::log(LogLevel level,
 
   elog(pg_level, "[pg_ai_query] %s %s", prefix.c_str(), message.c_str());
 #else
-  std::cerr << prefix << " [pg_ai_query " << message << std::endl;
+  std::cerr << prefix << " [pg_ai_query] " << message << std::endl;
 #endif
 }
 
 // ---- Public logging APIs ----
 void Logger::debug(const std::string& message) {
-  log(LogLevel::LOG_DEBUG, "[DEBUG]", message);
+  log(LogLevel::LOG_DEBUG, "[DEBUG] [pg_ai_query]", message);
 }
 
 void Logger::info(const std::string& message) {
-  log(LogLevel::LOG_INFO, "[INFO]", message);
+  log(LogLevel::LOG_INFO, "[INFO] [pg_ai_query]", message);
 }
 
 void Logger::warning(const std::string& message) {
-  log(LogLevel::LOG_WARNING, "[WARNING]", message);
+  log(LogLevel::LOG_WARNING, "[WARNING] [pg_ai_query]", message);
 }
 
 void Logger::error(const std::string& message) {
-  log(LogLevel::LOG_ERROR, "[ERROR]", message);
+  log(LogLevel::LOG_ERROR, "[ERROR] [pg_ai_query]", message);
 }
 
 void Logger::setLoggingEnabled(bool enabled) {
