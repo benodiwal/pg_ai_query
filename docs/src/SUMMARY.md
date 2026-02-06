@@ -26,6 +26,7 @@
 - [Integration Patterns](./integration.md)
 
 # Development
+- [Developer Guide](./developer-guide.md)
 - [Nix Development Environment](./nix-development.md)
 
 # Reference
