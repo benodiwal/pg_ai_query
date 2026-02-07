@@ -82,6 +82,7 @@ bool ConfigManager::loadConfig(const std::string& config_path) {
     config_loaded_ = true;
     // Enable/disable logging based on config
     logger::Logger::setLoggingEnabled(config_.enable_logging);
+    pg_ai::logger::Logger::set_level(config_.log_level);
     logger::Logger::info("Configuration loaded successfully");
     // Override with environment variables
     loadEnvConfig();
