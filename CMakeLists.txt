@@ -24,10 +24,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find pg_config to locate PostgreSQL installation paths
 # pg_config is the standard tool for discovering PostgreSQL build environment
-find_program(PG_CONFIG pg_config REQUIRED
+find_program(PG_CONFIG pg_config
     HINTS /usr/bin /usr/local/bin /opt/homebrew/bin
     DOC "Path to pg_config executable"
 )
+
+# If pg_config is not found, provide helpful installation instructions
+if(NOT PG_CONFIG)
+    message(FATAL_ERROR 
+        "pg_config not found. Install postgresql-server-dev package.\n"
+        "On Ubuntu: apt install postgresql-server-dev-14\n"
+        "On Debian: apt install postgresql-server-dev-all\n"
+        "On macOS: brew install postgresql@14\n"
+        "On Fedora/RHEL: dnf install postgresql-devel\n"
+        "On Arch Linux: pacman -S postgresql-libs"
+    )
+endif()
 
 # Extract required paths from pg_config
 # --includedir-server: Where PostgreSQL server headers are (postgres.h, spi.h, etc.)
@@ -53,6 +65,7 @@ include_directories(${PG_INCLUDE})
 # Configure ai-sdk-cpp options
 # We build as static libraries to simplify extension packaging and avoid 
 # runtime shared library loading issues (RPATH) within the PostgreSQL process.
+# Trade-off: Larger binary size, but eliminates dependency management headaches.
 set(AI_SDK_BUILD_EXAMPLES OFF CACHE BOOL "Disable SDK examples")
 set(AI_SDK_BUILD_TESTS OFF CACHE BOOL "Disable SDK tests")
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Force static libraries for dependencies")
@@ -143,10 +156,32 @@ endif()
 # ------------------------------------------------------------------------------
 
 # OpenSSL: Required for secure HTTPS communication with AI provider APIs
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL QUIET)
+if(NOT OpenSSL_FOUND)
+    message(FATAL_ERROR "OpenSSL not found. Required for AI provider API calls.\n"
+        "Install via:\n"
+        "  Ubuntu/Debian: sudo apt install libssl-dev\n"
+        "  Fedora/RHEL: sudo dnf install openssl-devel\n"
+        "  Arch Linux: sudo pacman -S openssl\n"
+        "  macOS: brew install openssl"
+    )
+endif()
+
+if(OPENSSL_VERSION VERSION_LESS "3.0.0")
+    message(WARNING "OpenSSL 3.0.0+ recommended for best security and performance")
+endif()
 
 # CURL: Used by libcurl in Google Gemini implementation to perform HTTP requests
-find_package(CURL REQUIRED)
+find_package(CURL QUIET)
+if(NOT CURL_FOUND)
+    message(FATAL_ERROR "CURL library not found. Required for Gemini provider.\n"
+        "Install via:\n"
+        "  Ubuntu/Debian: sudo apt install libcurl4-openssl-dev\n"
+        "  Fedora/RHEL: sudo dnf install libcurl-devel\n"
+        "  Arch Linux: sudo pacman -S curl\n"
+        "  macOS: brew install curl"
+    )
+endif()
 
 # Intl (gettext): Required by PostgreSQL for Native Language Support (NLS)
 find_package(Intl)
@@ -249,8 +284,9 @@ target_compile_definitions(pg_ai_query PRIVATE
 )
 
 # Installation logic
-# We install the shared library to both LIBDIR and PKGLIBDIR to ensure compatibility
-# across various PostgreSQL distributions and versions.
+# Install to both locations for maximum compatibility:
+# - PKGLIBDIR: Standard PostgreSQL extension location (primary)
+# - LIBDIR: Some distributions expect libraries here (fallback)
 execute_process(COMMAND ${PG_CONFIG} --version OUTPUT_VARIABLE PG_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
 set(PG_MAJOR_VERSION ${CMAKE_MATCH_1})
 
@@ -274,14 +310,15 @@ install(FILES pg_ai_query.control
     DESTINATION ${PG_SHAREDIR}/extension/
 )
 
-# Install prompts directory
+# Install prompt templates used by the query generator
 install(DIRECTORY prompts/
     DESTINATION ${PG_SHAREDIR}/extension/prompts/
     FILES_MATCHING PATTERN "*.txt"
 )
 
 # Optional: Build logger test (not built by default)
-# Uncomment to build: cmake .. -DBUILD_LOGGER_TEST=ON
+# Enable with: cmake .. -DBUILD_LOGGER_TEST=ON
+# This creates a standalone test_logger executable for debugging the logging system.
 option(BUILD_LOGGER_TEST "Build logger test executable" OFF)
 if(BUILD_LOGGER_TEST)
     add_executable(test_logger
@@ -292,6 +329,8 @@ if(BUILD_LOGGER_TEST)
 endif()
 
 # Build tests (cmake .. -DBUILD_TESTS=ON)
+# This enables the unit test suite located in the tests/ directory.
+# Tests can be run with: make test
 option(BUILD_TESTS "Build unit tests" OFF)
 if(BUILD_TESTS)
     add_subdirectory(tests)
