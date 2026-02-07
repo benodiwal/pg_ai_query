@@ -1,12 +1,39 @@
-cmake_minimum_required(VERSION 3.16)
-project(pg_ai_query)
+# ==============================================================================
+# pg_ai_query - PostgreSQL Extension Build Configuration
+# ==============================================================================
 
-# Set C++ standard
+cmake_minimum_required(VERSION 3.16)
+
+# Project definition
+# We use C++20 for features like designated initializers, std::format
+# and better template support which is required by modern AI SDKs.
+project(pg_ai_query 
+    VERSION 0.1.1
+    LANGUAGES CXX
+    DESCRIPTION "PostgreSQL extension for AI-powered query generation"
+)
+
+# Set C++ standard to 20
+# Required for modern C++ features and compatibility with ai-sdk-cpp
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find PostgreSQL
-find_program(PG_CONFIG pg_config REQUIRED)
+# ------------------------------------------------------------------------------
+# PostgreSQL Configuration
+# ------------------------------------------------------------------------------
+
+# Find pg_config to locate PostgreSQL installation paths
+# pg_config is the standard tool for discovering PostgreSQL build environment
+find_program(PG_CONFIG pg_config REQUIRED
+    HINTS /usr/bin /usr/local/bin /opt/homebrew/bin
+    DOC "Path to pg_config executable"
+)
+
+# Extract required paths from pg_config
+# --includedir-server: Where PostgreSQL server headers are (postgres.h, spi.h, etc.)
+# --includedir: Where general PostgreSQL client headers are
+# --pkglibdir: Where extension shared libraries (.so/.dylib) must be installed
+# --sharedir: Where extension SQL scripts and control files are located
 execute_process(COMMAND ${PG_CONFIG} --includedir-server OUTPUT_VARIABLE PG_INCLUDE_SERVER OUTPUT_STRIP_TRAILING_WHITESPACE)
 execute_process(COMMAND ${PG_CONFIG} --includedir OUTPUT_VARIABLE PG_INCLUDE OUTPUT_STRIP_TRAILING_WHITESPACE)
 execute_process(COMMAND ${PG_CONFIG} --pkglibdir OUTPUT_VARIABLE PG_PKGLIB OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -15,25 +42,37 @@ execute_process(COMMAND ${PG_CONFIG} --bindir OUTPUT_VARIABLE PG_BINDIR OUTPUT_S
 execute_process(COMMAND ${PG_CONFIG} --sharedir OUTPUT_VARIABLE PG_SHAREDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 # Include PostgreSQL headers
+# These are essential for any PostgreSQL extension to access internal APIs
 include_directories(${PG_INCLUDE_SERVER})
 include_directories(${PG_INCLUDE})
 
-# Configure ai-sdk-cpp options to use static libraries only
-set(AI_SDK_BUILD_EXAMPLES OFF CACHE BOOL "")
-set(AI_SDK_BUILD_TESTS OFF CACHE BOOL "")
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
-set(AI_SDK_STATIC_ONLY ON CACHE BOOL "")
+# ------------------------------------------------------------------------------
+# Third-Party Dependencies (Submodules)
+# ------------------------------------------------------------------------------
+
+# Configure ai-sdk-cpp options
+# We build as static libraries to simplify extension packaging and avoid 
+# runtime shared library loading issues (RPATH) within the PostgreSQL process.
+set(AI_SDK_BUILD_EXAMPLES OFF CACHE BOOL "Disable SDK examples")
+set(AI_SDK_BUILD_TESTS OFF CACHE BOOL "Disable SDK tests")
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Force static libraries for dependencies")
+set(AI_SDK_STATIC_ONLY ON CACHE BOOL "Only use static SDK components")
 
 # Enable Position Independent Code for all targets (required for Linux shared libraries)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Add the ai-sdk-cpp submodule
+# This provides the core AI client logic for OpenAI, Anthropic, and Gemini.
 add_subdirectory(third_party/ai-sdk-cpp)
 
 # Include our source directories
 include_directories(src)
 include_directories(third_party/ai-sdk-cpp/third_party/nlohmann_json_patched/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/ai-sdk-cpp/include)
+
+# ------------------------------------------------------------------------------
+# Extension Target Definition
+# ------------------------------------------------------------------------------
 
 # Source files for the clean implementation
 set(SOURCES
@@ -51,13 +90,14 @@ set(SOURCES
     src/config.cpp
 )
 
-# Create module library for PostgreSQL extension
-# Get PostgreSQL version for extension naming
+# Get PostgreSQL version to handle platform-specific naming conventions
 execute_process(COMMAND ${PG_CONFIG} --version OUTPUT_VARIABLE PG_VERSION_OUTPUT OUTPUT_STRIP_TRAILING_WHITESPACE)
 string(REGEX MATCH "PostgreSQL ([0-9]+)" PG_VERSION_MATCH ${PG_VERSION_OUTPUT})
 set(PG_MAJOR_VERSION ${CMAKE_MATCH_1})
 
+# Platform-specific build logic
 if(APPLE)
+    # macOS: PostgreSQL extensions should be built as 'MODULE'
     add_library(pg_ai_query MODULE ${SOURCES})
     # PostgreSQL 16+ on macOS expects .dylib, earlier versions expect .so
     if(PG_MAJOR_VERSION GREATER_EQUAL 16)
@@ -65,20 +105,24 @@ if(APPLE)
     else()
         set(PG_EXTENSION_SUFFIX ".so")
     endif()
+    
+    # Prefix must be empty (postgres expects 'pg_ai_query.so', not 'libpg_ai_query.so')
+    # bundle_loader ensures symbols are resolved against the postgres binary at load time
     set_target_properties(pg_ai_query PROPERTIES
         PREFIX ""
         SUFFIX ${PG_EXTENSION_SUFFIX}
         LINK_FLAGS "-bundle_loader ${PG_BINDIR}/postgres"
     )
-    message(STATUS "Building PostgreSQL ${PG_MAJOR_VERSION} extension with suffix: ${PG_EXTENSION_SUFFIX}")
+    message(STATUS "Building PostgreSQL ${PG_MAJOR_VERSION} extension for macOS with suffix: ${PG_EXTENSION_SUFFIX}")
 elseif(UNIX)
-    # Linux build configuration
+    # Linux: Extensions are standard shared objects
     add_library(pg_ai_query SHARED ${SOURCES})
     set_target_properties(pg_ai_query PROPERTIES
         PREFIX ""
         SUFFIX ".so"
         POSITION_INDEPENDENT_CODE ON
-        # Set RPATH for finding libraries at runtime
+        # Set RPATH for finding system libraries at runtime
+        # $ORIGIN helps locate libraries relative to the extension path
         INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib;/usr/lib;/usr/local/lib"
         BUILD_RPATH "$ORIGIN;$ORIGIN/../lib;/usr/lib;/usr/local/lib"
         BUILD_WITH_INSTALL_RPATH ON
@@ -94,16 +138,22 @@ else()
     message(STATUS "Building PostgreSQL extension for Windows/Other")
 endif()
 
-# Find required system libraries
+# ------------------------------------------------------------------------------
+# System Dependencies
+# ------------------------------------------------------------------------------
+
+# OpenSSL: Required for secure HTTPS communication with AI provider APIs
 find_package(OpenSSL REQUIRED)
+
+# CURL: Used by libcurl in Google Gemini implementation to perform HTTP requests
 find_package(CURL REQUIRED)
 
-# Find gettext for NLS support (required by PostgreSQL)
+# Intl (gettext): Required by PostgreSQL for Native Language Support (NLS)
 find_package(Intl)
 if(Intl_FOUND)
     message(STATUS "Found Intl library: ${Intl_LIBRARIES}")
 else()
-    # Try to find gettext manually on macOS
+    # Manual fallback for Homebrew or other non-standard paths on macOS
     if(APPLE)
         find_path(LIBINTL_INCLUDE_DIR libintl.h PATHS /opt/homebrew/include /usr/local/include)
         find_library(LIBINTL_LIBRARY intl PATHS /opt/homebrew/lib /usr/local/lib)
@@ -116,7 +166,12 @@ else()
     endif()
 endif()
 
-# Link with ai-sdk-cpp static libraries to avoid RPATH issues
+# ------------------------------------------------------------------------------
+# Linking and Installation
+# ------------------------------------------------------------------------------
+
+# Link libraries to our extension
+# PRIVATE linking ensures these dependencies don't leak to the PostgreSQL process global namespace
 target_link_libraries(pg_ai_query PRIVATE
     ai-sdk-cpp-core
     ai-sdk-cpp-openai
@@ -126,21 +181,21 @@ target_link_libraries(pg_ai_query PRIVATE
     OpenSSL::Crypto
 )
 
-# Add system zlib separately (will be added by macOS section if needed)
-
-# Link Intl library if found
+# Link Intl if found (required for NLS support)
 if(Intl_FOUND)
     target_link_libraries(pg_ai_query PRIVATE ${Intl_LIBRARIES})
     target_include_directories(pg_ai_query PRIVATE ${Intl_INCLUDE_DIRS})
 endif()
 
+# Add system zlib separately
 # Platform-specific library configuration
 if(APPLE)
-    # macOS: Set RPATH to find system libraries
+    # macOS: Set RPATH for Dynamic library discovery
     execute_process(COMMAND find /usr/lib /System/Library/Frameworks -name "libz.1.dylib" -type f 2>/dev/null | head -1
         OUTPUT_VARIABLE LIBZ_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
     get_filename_component(LIBZ_DIR "${LIBZ_PATH}" DIRECTORY)
 
+    # MACOSX_RPATH ensures the library can find its dependencies relative to itself
     set_target_properties(pg_ai_query PROPERTIES
         INSTALL_RPATH "@loader_path;/usr/lib;/System/Library/Frameworks;${LIBZ_DIR};/opt/homebrew/lib;/usr/local/lib"
         BUILD_RPATH "@loader_path;/usr/lib;/System/Library/Frameworks;${LIBZ_DIR};/opt/homebrew/lib;/usr/local/lib"
@@ -149,7 +204,7 @@ if(APPLE)
         LINK_SEARCH_END_STATIC ON
     )
 
-    # Find and link system zlib
+    # Find and link system zlib (required by many HTTP/SDK components)
     find_library(SYSTEM_Z z REQUIRED)
     if(SYSTEM_Z)
         target_link_libraries(pg_ai_query PRIVATE ${SYSTEM_Z})
@@ -163,7 +218,7 @@ if(APPLE)
     message(STATUS "Found libz.1.dylib at: ${LIBZ_PATH}")
 
 elseif(UNIX)
-    # Linux: Link required system libraries
+    # Linux: Link required system libraries for threading and compression
     find_package(ZLIB REQUIRED)
     find_package(Threads REQUIRED)
 
@@ -181,18 +236,21 @@ elseif(UNIX)
     message(STATUS "Linux build: Linked zlib, pthread")
 endif()
 
-# Include directories
+# Global include directories for the target
 target_include_directories(pg_ai_query PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ai-sdk-cpp/include
 )
 
-# Add compile definitions
+# Compile definitions
+# USE_POSTGRESQL_ELOG: Tells the code to use PostgreSQL's internal logging
 target_compile_definitions(pg_ai_query PRIVATE
     USE_POSTGRESQL_ELOG
 )
 
-# Get PostgreSQL version to handle path differences
+# Installation logic
+# We install the shared library to both LIBDIR and PKGLIBDIR to ensure compatibility
+# across various PostgreSQL distributions and versions.
 execute_process(COMMAND ${PG_CONFIG} --version OUTPUT_VARIABLE PG_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
 set(PG_MAJOR_VERSION ${CMAKE_MATCH_1})
 
