@@ -1,20 +1,24 @@
 #include "../include/response_formatter.hpp"
 
 #include <sstream>
+#include <string>
 #include <nlohmann/json.hpp>
 
 namespace pg_ai {
+namespace {
 
 std::string format_multiline_comment(const std::string& text,
                                      const std::string& prefix = "--   ",
-                                     int max_width = 70) {
+                                     std::size_t max_width = 70) {
   std::string result;
   std::istringstream stream(text);
   std::string word;
   std::string current_line = prefix;
 
   while (stream >> word) {
-    if (current_line.length() + word.length() + 1 > max_width) {
+    const std::size_t space_needed = current_line.length() + word.length() +
+                                     (current_line != prefix ? 1 : 0);
+    if (space_needed > max_width) {
       result += current_line + "\n";
       current_line = prefix + word;
     } else {
@@ -28,6 +32,7 @@ std::string format_multiline_comment(const std::string& text,
   }
   return result;
 }
+}  //  anonymous namespace
 
 std::string ResponseFormatter::formatResponse(
     const QueryResult& result,
@@ -122,7 +127,6 @@ std::string ResponseFormatter::formatWarnings(
       }
     }
   }
-
   return output.str();
 }
 
@@ -132,6 +136,7 @@ std::string ResponseFormatter::formatVisualization(
 
   output << "-- Suggested Visualization:\n";
   output << format_multiline_comment(visualization);
+
   return output.str();
 }
 
