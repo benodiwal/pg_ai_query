@@ -353,43 +353,6 @@ Your test suite should cover:
    - Custom endpoint override
    - Parameter defaults from config
 
-## Update CMakeLists.txt
-
-The `tests/CMakeLists.txt` needs to be updated to include the new Cohere client source files and the new unit test file so they are part of the test build.
-
-#### tests/CMakeLists.txt
-#### ... existing code ...
-
-```cmake
-# Source files for core library (without PostgreSQL dependencies)
-set(CORE_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/config.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/provider_selector.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/response_formatter.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/ai_client_factory.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/logger.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/query_parser.cpp
-    ${CMAKE_SOURCE_DIR}/src/utils.cpp
-    ${CMAKE_SOURCE_DIR}/src/prompts.cpp
-    ${CMAKE_SOURCE_DIR}/src/providers/gemini/client.cpp # Include Gemini client if not already
-    ${CMAKE_SOURCE_DIR}/src/providers/cohere/client.cpp # Add Cohere client implementation
-)
-
-# ... existing code ...
-
-# Unit tests executable
-add_executable(pg_ai_query_tests
-    unit/test_config.cpp
-    unit/test_provider_selector.cpp
-    unit/test_response_formatter.cpp
-    unit/test_utils.cpp
-    unit/test_query_parser.cpp
-    unit/test_cohere_client.cpp # Add the new Cohere client test file
-)
-
-# ... existing code ...
-
-```
 
 ## 3. Debugging
 
