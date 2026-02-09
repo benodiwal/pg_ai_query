@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
+#include <pwd.h>
 #include <sstream>
 #include <unistd.h>
 
@@ -307,8 +308,13 @@ ProviderConfig* ConfigManager::getProviderConfigMutable(Provider provider) {
 
 std::string ConfigManager::getHomeDirectory() {
   const char* home = std::getenv("HOME");
-  if (home) {
+  if (home && home[0] != '\0') {
     return std::string(home);
+  }
+  
+  struct passwd* pw = getpwuid(geteuid());
+  if (pw && pw->pw_dir && pw->pw_dir[0] != '\0') {
+    return std::string(pw->pw_dir);
   }
 
   const char* user = std::getenv("USER");
