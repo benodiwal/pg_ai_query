@@ -311,7 +311,7 @@ std::string ConfigManager::getHomeDirectory() {
   if (home && home[0] != '\0') {
     return std::string(home);
   }
-  
+
   struct passwd* pw = getpwuid(geteuid());
   if (pw && pw->pw_dir && pw->pw_dir[0] != '\0') {
     return std::string(pw->pw_dir);
