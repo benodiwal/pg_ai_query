@@ -186,7 +186,9 @@ std::string QueryGenerator::buildPrompt(const QueryRequest& request) {
         }
       }
     }
-  } catch (...) {
+  } catch (const std::exception& e) {
+    logger::Logger::warning("Error building schema context for prompt: " +
+                            std::string(e.what()));
   }
 
   if (!schema_context.empty()) {
