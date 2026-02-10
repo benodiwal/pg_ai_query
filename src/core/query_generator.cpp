@@ -132,8 +132,13 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
           .row_limit_applied = false,
           .suggested_visualization = "",
           .success = false,
-          .error_message =
-              "AI API error: " + utils::formatAPIError(result.error_message())};
+          .error_message = "AI API error: " +
+                           utils::formatAPIError(
+                               client_result.client.provider_name(),
+                               result.provider_metadata.has_value()
+                                   ? std::stoi(result.provider_metadata.value())
+                                   : 0,
+                               result.error_message())};
     }
 
     if (result.text.empty()) {
@@ -637,7 +642,13 @@ ExplainResult QueryGenerator::explainQuery(const ExplainRequest& request) {
 
     if (!ai_result) {
       result.error_message =
-          "AI API error: " + utils::formatAPIError(ai_result.error_message());
+          "AI API error: " +
+          utils::formatAPIError(
+              client_result.client.provider_name(),
+              ai_result.provider_metadata.has_value()
+                  ? std::stoi(ai_result.provider_metadata.value())
+                  : 0,
+              ai_result.error_message());
       return result;
     }
 
