@@ -1,5 +1,7 @@
 #include "./include/utils.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <fstream>
 #include <stdexcept>
@@ -43,6 +45,22 @@ std::string read_file_or_throw(const std::string& filepath) {
     throw std::runtime_error("Failed to read file: " + filepath);
   }
   return std::move(content);
+}
+
+std::optional<std::string> validate_natural_language_query(
+    const std::string& query,
+    int max_query_length) {
+  if (query.length() > static_cast<size_t>(max_query_length)) {
+    return "Query too long. Maximum " + std::to_string(max_query_length) +
+           " characters allowed. Your query: " +
+           std::to_string(query.length()) + " characters.";
+  }
+  if (query.empty() ||
+      std::all_of(query.begin(), query.end(),
+                  [](unsigned char c) { return std::isspace(c); })) {
+    return "Query cannot be empty.";
+  }
+  return std::nullopt;
 }
 
 // CR-someday @benodiwal: This is the basic version of API Error formatting,

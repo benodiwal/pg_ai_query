@@ -180,6 +180,42 @@ TEST_F(UtilsTest, ReadFixtureFiles) {
   EXPECT_THAT(content, testing::HasSubstr("[openai]"));
 }
 
+// --- validate_natural_language_query ---
+
+TEST_F(UtilsTest, ValidateNaturalLanguageQuery_Empty) {
+  auto err = validate_natural_language_query("", 4000);
+  ASSERT_TRUE(err.has_value());
+  EXPECT_EQ(*err, "Query cannot be empty.");
+}
+
+TEST_F(UtilsTest, ValidateNaturalLanguageQuery_WhitespaceOnly) {
+  auto err = validate_natural_language_query("   \t\n  ", 4000);
+  ASSERT_TRUE(err.has_value());
+  EXPECT_EQ(*err, "Query cannot be empty.");
+}
+
+TEST_F(UtilsTest, ValidateNaturalLanguageQuery_TooLong) {
+  const int max_len = 100;
+  std::string long_query(max_len + 1, 'x');
+  auto err = validate_natural_language_query(long_query, max_len);
+  ASSERT_TRUE(err.has_value());
+  EXPECT_THAT(*err, testing::HasSubstr("Query too long"));
+  EXPECT_THAT(*err, testing::HasSubstr("Maximum 100"));
+  EXPECT_THAT(*err, testing::HasSubstr("101 characters"));
+}
+
+TEST_F(UtilsTest, ValidateNaturalLanguageQuery_ValidShort) {
+  auto err = validate_natural_language_query("show all users", 4000);
+  EXPECT_FALSE(err.has_value());
+}
+
+TEST_F(UtilsTest, ValidateNaturalLanguageQuery_ExactlyMaxLength) {
+  const int max_len = 50;
+  std::string query(max_len, 'a');
+  auto err = validate_natural_language_query(query, max_len);
+  EXPECT_FALSE(err.has_value());
+}
+
 // Test TempConfigFile helper
 TEST(TempConfigFileTest, CreatesAndCleansUp) {
   std::string path;

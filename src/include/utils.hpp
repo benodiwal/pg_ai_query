@@ -1,8 +1,24 @@
 #pragma once
+
+#include <optional>
 #include <string>
 #include <utility>
 
 namespace pg_ai::utils {
+
+/**
+ * @brief Validate natural language query input before sending to AI
+ *
+ * Checks length and empty/whitespace-only. Returns an error message if
+ * invalid, or std::nullopt if valid.
+ *
+ * @param query The user's natural language query string
+ * @param max_query_length Maximum allowed character count
+ * @return std::nullopt if valid, or error message string if invalid
+ */
+std::optional<std::string> validate_natural_language_query(
+    const std::string& query,
+    int max_query_length);
 
 /**
  * @brief Read entire file contents into a string

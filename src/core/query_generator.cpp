@@ -8,7 +8,6 @@ extern "C" {
 #include <executor/spi.h>
 }
 
-#include <cctype>
 #include <optional>
 #include <sstream>
 #include <vector>
@@ -33,15 +32,18 @@ namespace pg_ai {
 
 QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
   try {
-    if (request.natural_language.empty()) {
-      return QueryResult{
-          .generated_query = "",
-          .explanation = "",
-          .warnings = {},
-          .row_limit_applied = false,
-          .suggested_visualization = "",
-          .success = false,
-          .error_message = "Natural language query cannot be empty"};
+    const auto& cfg = config::ConfigManager::getConfig();
+
+    auto validation_error = utils::validate_natural_language_query(
+        request.natural_language, cfg.max_query_length);
+    if (validation_error) {
+      return QueryResult{.generated_query = "",
+                         .explanation = "",
+                         .warnings = {},
+                         .row_limit_applied = false,
+                         .suggested_visualization = "",
+                         .success = false,
+                         .error_message = *validation_error};
     }
 
     // Use ProviderSelector to determine the provider
