@@ -27,14 +27,16 @@ class GeminiClient {
 
   GeminiResponse generate_text(const GeminiRequest& request);
 
+ protected:
+  std::string build_request_body(const GeminiRequest& request);
+  GeminiResponse parse_response(const std::string& body, int status_code);
+
  private:
   std::string api_key_;
   static constexpr const char* BASE_URL =
       "https://generativelanguage.googleapis.com";
   static constexpr const char* API_VERSION = "v1beta";
 
-  std::string build_request_body(const GeminiRequest& request);
-  GeminiResponse parse_response(const std::string& body, int status_code);
   GeminiResponse make_http_request(const std::string& url,
                                    const std::string& body);
 };
