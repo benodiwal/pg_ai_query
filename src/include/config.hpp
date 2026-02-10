@@ -39,6 +39,7 @@ constexpr const char* SECTION_GEMINI = "gemini";
 constexpr const char* DEFAULT_OPENAI_MODEL = "gpt-4o";
 constexpr const char* DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5-20250929";
 
+constexpr int MAX_CONFIG_LINE_LENGTH = 8192;
 // Default token limits
 constexpr int DEFAULT_OPENAI_MAX_TOKENS = 16384;
 constexpr int DEFAULT_ANTHROPIC_MAX_TOKENS = 8192;
@@ -217,6 +218,12 @@ class ConfigManager {
    * configuration file settings.
    */
   static void loadEnvConfig();
+
+  static bool isValidSection(const std::string& section);
+
+  static bool isValidLine(const std::string& line);
+
+  static bool parseBooleanValue(const std::string& value);
 };
 
 // Convenience macros for accessing config
