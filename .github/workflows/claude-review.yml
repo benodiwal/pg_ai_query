@@ -51,17 +51,22 @@ jobs:
           ref: ${{ steps.pr.outputs.head_ref }}
 
       - name: Run Claude Code
-        uses: anthropics/claude-code-action@7145c3e0510bcdbdd29f67cc4a8c1958f1acfa2f # v1.0.27
+        uses: anthropics/claude-code-action@70e16deb18402428bd09e08d1ec3662a872e3c72 # v1.0.41
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           model: ${{ vars.CLAUDE_MODEL || 'claude-sonnet-4-20250514' }}
           trigger_phrase: "/claude"
           allowed_tools: "Bash,Read,Glob,Grep,Edit,Write"
           custom_instructions: |
             You are reviewing a PostgreSQL C++ extension project (pg_ai_query).
 
+            Before reviewing, check the PR body for linked issues (e.g. "Fixes #123", "Closes #456").
+            If found, fetch their details with: gh issue view <number> --repo $GITHUB_REPOSITORY
+            Use the issue context to understand the intent behind the changes.
+            
             When asked to review:
-            1. Analyze the PR changes
+            1. Analyze the PR changes against linked issue requirements (if present)
             2. Build the project: mkdir -p build && cd build && cmake .. && make
             3. Run any available tests
             4. Provide feedback on:

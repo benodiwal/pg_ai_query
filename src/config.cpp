@@ -57,16 +57,32 @@ bool ConfigManager::loadConfig(const std::string& config_path) {
 
   auto result = utils::read_file(config_path);
   if (!result.first) {
-    logger::Logger::warning("Could not read config file: " + config_path +
-                            ". Using defaults.");
-    config_loaded_ = true;  // Use defaults
-    return true;
+    logger::Logger::warning("Configuration file not found at: " + config_path);
+    logger::Logger::info("To create it, run:");
+    logger::Logger::info("  cat > " + config_path + " << 'EOF'");
+    logger::Logger::info("  [openai]");
+    logger::Logger::info("  api_key = \"your-api-key-here\"");
+    logger::Logger::info("  EOF");
+    logger::Logger::info("");
+
+    logger::Logger::info("Documentation:");
+    logger::Logger::info("  https://benodiwal.github.io/pg_ai_query/");
+    logger::Logger::info(
+        "  https://benodiwal.github.io/pg_ai_query/configuration.html");
+
+    // Prefer failing early with a clear error so users don't get confusing
+    // failures later.
+    throw std::runtime_error(
+        "pg_ai_query configuration file not found at: " + config_path +
+        "\nCreate it with your API key. See: "
+        "https://benodiwal.github.io/pg_ai_query/configuration.html");
   }
 
   if (parseConfig(result.second)) {
     config_loaded_ = true;
     // Enable/disable logging based on config
     logger::Logger::setLoggingEnabled(config_.enable_logging);
+    pg_ai::logger::Logger::set_level(config_.log_level);
     logger::Logger::info("Configuration loaded successfully");
     // Override with environment variables
     loadEnvConfig();
