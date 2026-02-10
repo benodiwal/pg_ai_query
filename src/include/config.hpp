@@ -179,6 +179,12 @@ class ConfigManager {
    * configuration file settings.
    */
   static void loadEnvConfig();
+
+  static bool isValidSection(const std::string& section);
+
+  static bool isValidLine(const std::string& line);
+
+  static bool parseBooleanValue(const std::string& value);
 };
 
 // Convenience macros for accessing config

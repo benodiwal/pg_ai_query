@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <pwd.h>
+#include <regex>
 #include <sstream>
 #include <unistd.h>
 #include "include/constants.hpp"
@@ -159,6 +160,10 @@ bool ConfigManager::parseConfig(const std::string& content) {
   config_ = Configuration();
 
   while (std::getline(stream, line)) {
+    if (line.length() >= constants::MAX_CONFIG_LINE_LENGTH) {
+      logger::Logger::error("Current Line is too long");
+      return false;
+    }
     // Remove leading/trailing whitespace
     line.erase(0, line.find_first_not_of(" \t"));
     line.erase(line.find_last_not_of(" \t") + 1);
@@ -169,7 +174,15 @@ bool ConfigManager::parseConfig(const std::string& content) {
 
     if (line[0] == '[' && line.back() == ']') {
       current_section = line.substr(1, line.length() - 2);
+      if (!isValidSection(current_section))
+        logger::Logger::warning("Invalid Section: " + current_section +
+                                ", Section will be ignored");
       continue;
+    }
+
+    if (!isValidLine(line)) {
+      logger::Logger::error("Current Line Does not match INI format style");
+      return false;
     }
 
     size_t eq_pos = line.find('=');
@@ -186,10 +199,17 @@ bool ConfigManager::parseConfig(const std::string& content) {
     value.erase(value.find_last_not_of(" \t") + 1);
 
     // Handle quoted values and inline comments
-    if (value.length() >= 2 && value[0] == '"') {
-      size_t closing_quote = value.find('"', 1);
-      if (closing_quote != std::string::npos) {
-        value = value.substr(1, closing_quote - 1);
+    if (value.length() >= 2 && value[0] == '"' || value[0] == '\'') {
+      if (value[0] == '"') {
+        size_t closing_quote = value.find('"', 1);
+        if (closing_quote != std::string::npos) {
+          value = value.substr(1, closing_quote - 1);
+        }
+      } else if (value[0] == '\'') {
+        size_t closing_quote = value.find('\'', 1);
+        if (closing_quote != std::string::npos) {
+          value = value.substr(1, closing_quote - 1);
+        }
       }
     } else {
       size_t comment_pos = value.find('#');
@@ -199,18 +219,30 @@ bool ConfigManager::parseConfig(const std::string& content) {
       }
     }
 
+    if (current_section.empty()) {
+      logger::Logger::warning("Key: " + key +
+                              " is outside a section, the key will be ignored");
+      continue;
+    }
+
+    if (!isValidSection(current_section)) {
+      logger::Logger::warning(
+          "Key: " + key + " is in a wrong a section, the key will be ignored");
+      continue;
+    }
+
     if (current_section == constants::SECTION_GENERAL) {
       if (key == "log_level")
         config_.log_level = value;
       else if (key == "enable_logging")
-        config_.enable_logging = (value == "true");
+        config_.enable_logging = parseBooleanValue(value);
       else if (key == "request_timeout_ms")
         config_.request_timeout_ms = std::stoi(value);
       else if (key == "max_retries")
         config_.max_retries = std::stoi(value);
     } else if (current_section == constants::SECTION_QUERY) {
       if (key == "enforce_limit")
-        config_.enforce_limit = (value == "true");
+        config_.enforce_limit = parseBooleanValue(value);
       else if (key == "default_limit")
         config_.default_limit = std::stoi(value);
       else if (key == "max_query_length") {
@@ -220,13 +252,13 @@ bool ConfigManager::parseConfig(const std::string& content) {
       }
     } else if (current_section == constants::SECTION_RESPONSE) {
       if (key == "show_explanation")
-        config_.show_explanation = (value == "true");
+        config_.show_explanation = parseBooleanValue(value);
       else if (key == "show_warnings")
-        config_.show_warnings = (value == "true");
+        config_.show_warnings = parseBooleanValue(value);
       else if (key == "show_suggested_visualization")
-        config_.show_suggested_visualization = (value == "true");
+        config_.show_suggested_visualization = parseBooleanValue(value);
       else if (key == "use_formatted_response") {
-        config_.use_formatted_response = (value == "true");
+        config_.use_formatted_response = parseBooleanValue(value);
       }
     } else if (current_section == constants::SECTION_OPENAI) {
       auto provider_config = getProviderConfigMutable(Provider::OPENAI);
@@ -331,4 +363,47 @@ std::string ConfigManager::getHomeDirectory() {
   return "";
 }
 
+bool ConfigManager::isValidSection(const std::string& section) {
+  std::vector<std::string> keys = {
+      constants::SECTION_RESPONSE, constants::SECTION_QUERY,
+      constants::SECTION_GENERAL,  constants::SECTION_GEMINI,
+      constants::SECTION_OPENAI,   constants::SECTION_ANTHROPIC,
+  };
+
+  for (const auto& key : keys) {
+    if (key == section)
+      return true;
+  }
+
+  return false;
+}
+
+bool ConfigManager::isValidLine(const std::string& line) {
+  std::regex kv_pattern(
+      R"lit((^\s*([a-zA-Z0-9_]+)\s*=\s*((?:"([^"]*)")|(?:'([^']*)')|(?:([^\s'"]*)))(\s*#.*)?))lit");
+  return std::regex_match(line, kv_pattern);
+}
+
+bool ConfigManager::parseBooleanValue(const std::string& value) {
+  std::string value_toLower = value;
+  std::transform(value_toLower.begin(), value_toLower.end(),
+                 value_toLower.begin(), ::tolower);
+  std::vector<std::string> possible_True_values = {"true", "yes", "1"};
+
+  std::vector<std::string> possible_False_values = {"false", "no", "0"};
+
+  for (auto& v : possible_True_values) {
+    if (value_toLower == v)
+      return true;
+  }
+
+  for (auto& v : possible_False_values) {
+    if (value_toLower == v)
+      return false;
+  }
+
+  logger::Logger::warning("Invalid Boolean Value, Got: " + value +
+                          " instead, falling back to false");
+  return false;
+}
 }  // namespace pg_ai::config
