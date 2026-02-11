@@ -31,6 +31,7 @@ TEST_F(ConfigManagerTest, LoadsValidCompleteConfig) {
   // Check query settings
   EXPECT_TRUE(config.enforce_limit);
   EXPECT_EQ(config.default_limit, 500);
+  EXPECT_EQ(config.max_query_length, 2000);
 
   // Check response settings
   EXPECT_TRUE(config.show_explanation);
@@ -51,6 +52,7 @@ TEST_F(ConfigManagerTest, LoadsMinimalConfig) {
   EXPECT_FALSE(config.enable_logging);          // default
   EXPECT_EQ(config.request_timeout_ms, 30000);  // default
   EXPECT_EQ(config.max_retries, 3);             // default
+  EXPECT_EQ(config.max_query_length, 4000);     // default
 
   // OpenAI key should be set
   const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
@@ -96,14 +98,11 @@ TEST_F(ConfigManagerTest, LoadsCustomEndpoints) {
   EXPECT_EQ(anthropic->api_endpoint, "https://custom-anthropic.example.com");
 }
 
-// Test loading non-existent file fails 
+// Test loading non-existent file fails
 TEST_F(ConfigManagerTest, ThrowsForNonexistentFile) {
-  EXPECT_THROW(
-      ConfigManager::loadConfig("/nonexistent/path/config.ini"),
-      std::runtime_error
-  );
+  EXPECT_THROW(ConfigManager::loadConfig("/nonexistent/path/config.ini"),
+               std::runtime_error);
 }
-
 
 // Test provider enum to string conversion
 TEST_F(ConfigManagerTest, ProviderToString) {
@@ -240,6 +239,7 @@ max_retries = 10
 
 [query]
 default_limit = 2500
+max_query_length = 8000
 
 [openai]
 api_key = sk-test
@@ -253,6 +253,7 @@ temperature = 0.85
   EXPECT_EQ(config.request_timeout_ms, 120000);
   EXPECT_EQ(config.max_retries, 10);
   EXPECT_EQ(config.default_limit, 2500);
+  EXPECT_EQ(config.max_query_length, 8000);
 
   const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
   ASSERT_NE(openai, nullptr);
@@ -297,6 +298,7 @@ TEST(ConfigurationTest, DefaultConstructorSetsDefaults) {
   EXPECT_EQ(config.max_retries, 3);
   EXPECT_TRUE(config.enforce_limit);
   EXPECT_EQ(config.default_limit, 1000);
+  EXPECT_EQ(config.max_query_length, 4000);
   EXPECT_TRUE(config.show_explanation);
   EXPECT_TRUE(config.show_warnings);
   EXPECT_FALSE(config.show_suggested_visualization);

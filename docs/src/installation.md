@@ -119,8 +119,10 @@ After installation, verify that the extension is properly installed:
 
 ### 1. Connect to PostgreSQL
 
+Connect to your database where you want to install the extension:
+
 ```bash
-psql -d your_database
+psql -d <your_database>
 ```
 
 ### 2. Create the Extension
