@@ -4,7 +4,9 @@
 #include <cstdlib>
 #include <fstream>
 #include <regex>
+#include <pwd.h>
 #include <sstream>
+#include <unistd.h>
 #include <unordered_set>
 #include "include/logger.hpp"
 #include "include/utils.hpp"
@@ -24,6 +26,7 @@ Configuration::Configuration() {
   // Query generation defaults
   enforce_limit = true;
   default_limit = 1000;
+  max_query_length = constants::DEFAULT_MAX_QUERY_LENGTH;
 
   // Response format defaults
   show_explanation = true;
@@ -269,6 +272,11 @@ bool ConfigManager::parseConfig(const std::string& content) {
         config_.enforce_limit = parseBooleanValue(value);
       else if (key == "default_limit")
         config_.default_limit = std::stoi(value);
+      else if (key == "max_query_length") {
+        int val = std::stoi(value);
+        if (val > 0)
+          config_.max_query_length = val;
+      }
     } else if (current_section == constants::SECTION_RESPONSE) {
       if (key == "show_explanation")
         config_.show_explanation = parseBooleanValue(value);
@@ -302,8 +310,13 @@ ProviderConfig* ConfigManager::getProviderConfigMutable(Provider provider) {
 
 std::string ConfigManager::getHomeDirectory() {
   const char* home = std::getenv("HOME");
-  if (home) {
+  if (home && home[0] != '\0') {
     return std::string(home);
+  }
+
+  struct passwd* pw = getpwuid(geteuid());
+  if (pw && pw->pw_dir && pw->pw_dir[0] != '\0') {
+    return std::string(pw->pw_dir);
   }
 
   const char* user = std::getenv("USER");

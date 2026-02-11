@@ -40,6 +40,7 @@ max_retries = 3
 # Query generation behavior
 enforce_limit = true
 default_limit = 1000
+max_query_length = 4000
 
 [openai]
 # OpenAI provider configuration
@@ -145,6 +146,7 @@ Controls query generation behavior and safety features.
 |--------|------|---------|--------------|-------------|
 | `enforce_limit` | boolean | true | true, false | Always add LIMIT clause to SELECT queries |
 | `default_limit` | integer | 1000 | 1-1000000 | Default row limit when none specified |
+| `max_query_length` | integer | 4000 | 1+ | Maximum characters allowed in natural language query |
 
 #### enforce_limit
 
@@ -172,6 +174,19 @@ Default number of rows to limit when no explicit limit is requested.
 ```ini
 [query]
 default_limit = 2000  # Default to 2000 rows
+```
+
+#### max_query_length
+
+Maximum number of characters allowed in the natural language query. Queries longer than this are rejected before any API call to avoid excessive token usage and API limits.
+
+**Range:** 1 and above (values ≤ 0 are ignored; default is used)
+**Recommended:** 4000 for most use cases
+
+**Example:**
+```ini
+[query]
+max_query_length = 4000  # Reject queries longer than 4000 characters
 ```
 
 ### [openai] Section

@@ -50,6 +50,9 @@ enforce_limit = true
 # Default LIMIT value when not specified by user
 default_limit = 1000
 
+# Maximum length for natural language queries (characters)
+max_query_length = 4000
+
 [response]
 # Show detailed explanation of what the query does
 show_explanation = true
