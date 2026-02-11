@@ -261,6 +261,44 @@ Default Anthropic model to use for query generation.
 default_model = "claude-sonnet-4-5-20250929"  # Use Claude 3.5 Sonnet
 ```
 
+## Configuration Sections Properties
+
+### Duplicate Sections
+
+If a section appears multiple times, the parser merges all keys, and the last value for a key wins.
+**Example**
+```ini
+[general]
+log_level = "INFO"
+
+[general]
+log_level = "DEBUG"  # This value overrides the previous one
+```
+### Invalid Sections
+
+Sections not recognized by the parser are ignored, and a warning is logged.
+Any key under such a section will also be ignored.
+**Example**
+```ini
+[unknown_section]
+log_level = "INFO" # will be ignored
+```
+Section names must not contain spaces. Sections that do not match any known section are considered invalid.
+
+## Values Properties
+
+**Supported Boolean Values:**
+- `true` / `false` (case-insensitive, will be converted to lowercase)
+- `yes` / `no` (case-insensitive, will be converted to lowercase)
+- `1` / `0`
+
+**Quote Handling:**
+- Multi-word string values must be enclosed in quotes: `" "` or `' '`.
+- Escape sequences are interpreted inside quotes. For example, `\"` is treated as `"`, and `\'` is treated as `'`.
+- Escape sequences only affect quotes; all other characters are treated literally.
+- Double-quoted strings can contain any number of single quotes, and single-quoted strings can contain any number of double quotes.
+
+
 ## Configuration Examples
 
 ### Development Configuration
@@ -357,6 +395,7 @@ The extension validates:
 - **Required Quotes**: String values with spaces must be quoted
 - **Section Names**: Only valid section names are accepted
 - **Key Names**: Only valid configuration keys are recognized
+- **Line Length**: Each line in the configuration file is limited to 16384 characters.
 
 ### Value Validation
 

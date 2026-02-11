@@ -8,6 +8,7 @@
 #include <sstream>
 #include <unistd.h>
 #include "include/constants.hpp"
+#include <unordered_set>
 #include "include/logger.hpp"
 #include "include/utils.hpp"
 
@@ -121,6 +122,23 @@ const ProviderConfig* ConfigManager::getProviderConfig(Provider provider) {
   return nullptr;
 }
 
+ProviderConfig ConfigManager::getProviderDefaultConfigValues(
+    Provider provider) {
+  switch (provider) {
+    case Provider::OPENAI:
+      return {provider, constants::DEFAULT_OPENAI_MODEL,
+              constants::DEFAULT_OPENAI_MAX_TOKENS};
+    case Provider::ANTHROPIC:
+      return {provider, constants::DEFAULT_ANTHROPIC_MODEL,
+              constants::DEFAULT_ANTHROPIC_MAX_TOKENS};
+    case Provider::GEMINI:
+      return {provider, constants::DEFAULT_GEMINI_MODEL,
+              constants::DEFAULT_MAX_TOKENS, constants::DEFAULT_TEMPERATURE};
+    default:
+      return {};
+  }
+}
+
 std::string ConfigManager::providerToString(Provider provider) {
   switch (provider) {
     case Provider::OPENAI:
@@ -156,14 +174,20 @@ bool ConfigManager::parseConfig(const std::string& content) {
   std::istringstream stream(content);
   std::string line;
   std::string current_section;
-
+  long currentLine = 1;
   config_ = Configuration();
 
   while (std::getline(stream, line)) {
+    currentLine++;
     if (line.length() >= constants::MAX_CONFIG_LINE_LENGTH) {
-      logger::Logger::error("Current Line is too long");
+      logger::Logger::error("Line " + std::to_string(currentLine) +
+                            " is too long");
       return false;
     }
+    // Remove Carriage Returns (CR) if it exits
+    if (!line.empty() && line.back() == '\r')
+      line.pop_back();
+
     // Remove leading/trailing whitespace
     line.erase(0, line.find_first_not_of(" \t"));
     line.erase(line.find_last_not_of(" \t") + 1);
@@ -172,16 +196,20 @@ bool ConfigManager::parseConfig(const std::string& content) {
       continue;
     }
 
-    if (line[0] == '[' && line.back() == ']') {
-      current_section = line.substr(1, line.length() - 2);
-      if (!isValidSection(current_section))
-        logger::Logger::warning("Invalid Section: " + current_section +
-                                ", Section will be ignored");
-      continue;
+    if (line[0] == '[') {
+      size_t closing_section_pos = line.find_first_of(']');
+      if (closing_section_pos != std::string::npos) {
+        current_section = line.substr(1, closing_section_pos - 1);
+        if (!isValidSection(current_section))
+          logger::Logger::warning("Invalid Section: " + current_section +
+                                  ", Section will be ignored");
+        continue;
+      }
     }
 
     if (!isValidLine(line)) {
-      logger::Logger::error("Current Line Does not match INI format style");
+      logger::Logger::error("Line Number " + std::to_string(currentLine) +
+                            " Does not match INI format style");
       return false;
     }
 
@@ -199,17 +227,17 @@ bool ConfigManager::parseConfig(const std::string& content) {
     value.erase(value.find_last_not_of(" \t") + 1);
 
     // Handle quoted values and inline comments
-    if (value.length() >= 2 && value[0] == '"' || value[0] == '\'') {
-      if (value[0] == '"') {
-        size_t closing_quote = value.find('"', 1);
-        if (closing_quote != std::string::npos) {
-          value = value.substr(1, closing_quote - 1);
-        }
-      } else if (value[0] == '\'') {
-        size_t closing_quote = value.find('\'', 1);
-        if (closing_quote != std::string::npos) {
-          value = value.substr(1, closing_quote - 1);
-        }
+    if (value.length() >= 2 && (value[0] == '"' || value[0] == '\'')) {
+      char quotes_type = value[0];
+      size_t closing_quote = findClosingQuote(value, quotes_type);
+      if (closing_quote != std::string::npos) {
+        value = value.substr(1, closing_quote - 1);
+        value = unescapeQuotes(value);
+      } else {
+        logger::Logger::warning("Unclosed double quote in value of the key: " +
+                                key);
+        logger::Logger::warning("key will be skipped ");
+        continue;
       }
     } else {
       size_t comment_pos = value.find('#');
@@ -260,72 +288,9 @@ bool ConfigManager::parseConfig(const std::string& content) {
       else if (key == "use_formatted_response") {
         config_.use_formatted_response = parseBooleanValue(value);
       }
-    } else if (current_section == constants::SECTION_OPENAI) {
-      auto provider_config = getProviderConfigMutable(Provider::OPENAI);
-      if (!provider_config) {
-        ProviderConfig config;
-        config.provider = Provider::OPENAI;
-        config.default_model = constants::DEFAULT_OPENAI_MODEL;
-        config_.providers.push_back(config);
-        provider_config = &config_.providers.back();
-      }
-
-      if (key == "api_key")
-        provider_config->api_key = value;
-      else if (key == "default_model")
-        provider_config->default_model = value;
-      else if (key == "max_tokens")
-        provider_config->default_max_tokens = std::stoi(value);
-      else if (key == "temperature")
-        provider_config->default_temperature = std::stod(value);
-      else if (key == "api_endpoint")
-        provider_config->api_endpoint = value;
-
-    } else if (current_section == constants::SECTION_ANTHROPIC) {
-      auto provider_config = getProviderConfigMutable(Provider::ANTHROPIC);
-      if (!provider_config) {
-        ProviderConfig config;
-        config.provider = Provider::ANTHROPIC;
-        config.default_model = constants::DEFAULT_ANTHROPIC_MODEL;
-        config.default_max_tokens = constants::DEFAULT_ANTHROPIC_MAX_TOKENS;
-
-        config_.providers.push_back(config);
-        provider_config = &config_.providers.back();
-      }
-
-      if (key == "api_key")
-        provider_config->api_key = value;
-      else if (key == "default_model")
-        provider_config->default_model = value;
-      else if (key == "max_tokens")
-        provider_config->default_max_tokens = std::stoi(value);
-      else if (key == "temperature")
-        provider_config->default_temperature = std::stod(value);
-      else if (key == "api_endpoint")
-        provider_config->api_endpoint = value;
-
-    } else if (current_section == constants::SECTION_GEMINI) {
-      auto provider_config = getProviderConfigMutable(Provider::GEMINI);
-      if (!provider_config) {
-        ProviderConfig config;
-        config.provider = Provider::GEMINI;
-        config.default_model = "gemini-2.5-flash";
-        config.default_max_tokens = constants::DEFAULT_MAX_TOKENS;
-        config.default_temperature = constants::DEFAULT_TEMPERATURE;
-
-        config_.providers.push_back(config);
-        provider_config = &config_.providers.back();
-      }
-
-      if (key == "api_key")
-        provider_config->api_key = value;
-      else if (key == "default_model")
-        provider_config->default_model = value;
-      else if (key == "max_tokens")
-        provider_config->default_max_tokens = std::stoi(value);
-      else if (key == "temperature")
-        provider_config->default_temperature = std::stod(value);
     }
+    // should be one of the providers if reached to here
+    parseProviderSection(key, value, stringToProvider(current_section));
   }
 
   if (!config_.providers.empty()) {
@@ -364,46 +329,100 @@ std::string ConfigManager::getHomeDirectory() {
 }
 
 bool ConfigManager::isValidSection(const std::string& section) {
-  std::vector<std::string> keys = {
+  static const std::unordered_set<std::string> valid_sections = {
       constants::SECTION_RESPONSE, constants::SECTION_QUERY,
       constants::SECTION_GENERAL,  constants::SECTION_GEMINI,
       constants::SECTION_OPENAI,   constants::SECTION_ANTHROPIC,
   };
-
-  for (const auto& key : keys) {
-    if (key == section)
-      return true;
-  }
-
-  return false;
+  return valid_sections.contains(section);
 }
 
 bool ConfigManager::isValidLine(const std::string& line) {
-  std::regex kv_pattern(
-      R"lit((^\s*([a-zA-Z0-9_]+)\s*=\s*((?:"([^"]*)")|(?:'([^']*)')|(?:([^\s'"]*)))(\s*#.*)?))lit");
+  static const std::regex kv_pattern(
+      R"lit((^\s*([a-zA-Z0-9_]+)\s*=\s*((?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|(?:([^\s'"]*)))\s*(\s*#.*)?))lit");
   return std::regex_match(line, kv_pattern);
 }
 
 bool ConfigManager::parseBooleanValue(const std::string& value) {
-  std::string value_toLower = value;
-  std::transform(value_toLower.begin(), value_toLower.end(),
-                 value_toLower.begin(), ::tolower);
-  std::vector<std::string> possible_True_values = {"true", "yes", "1"};
+  static const std::unordered_set<std::string> true_values = {"true", "yes",
+                                                              "1"};
+  static const std::unordered_set<std::string> false_values = {"false", "no",
+                                                               "0"};
 
-  std::vector<std::string> possible_False_values = {"false", "no", "0"};
+  std::string value_to_lower = value;
+  std::transform(value_to_lower.begin(), value_to_lower.end(),
+                 value_to_lower.begin(), ::tolower);
 
-  for (auto& v : possible_True_values) {
-    if (value_toLower == v)
-      return true;
-  }
-
-  for (auto& v : possible_False_values) {
-    if (value_toLower == v)
-      return false;
-  }
+  if (true_values.contains(value_to_lower))
+    return true;
+  if (false_values.contains(value_to_lower))
+    return false;
 
   logger::Logger::warning("Invalid Boolean Value, Got: " + value +
                           " instead, falling back to false");
   return false;
+}
+
+std::string ConfigManager::unescapeQuotes(const std::string& value) {
+  std::string out;
+  out.reserve(value.size());
+  bool escaped = false;
+  for (const char i : value) {
+    if (escaped && (i == '\'' || i == '\"')) {
+      out.push_back(i);
+      escaped = false;
+    } else if (i == '\\') {
+      escaped = true;
+    } else {
+      out.push_back(i);
+    }
+  }
+  return out;
+}
+
+size_t ConfigManager::findClosingQuote(const std::string& value, char quote) {
+  bool escaped = false;
+  for (size_t i = 1; i < value.size(); ++i) {
+    char c = value[i];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (c == '\\') {
+      escaped = true;
+      continue;
+    }
+
+    if (c == quote)
+      return i;
+  }
+  return std::string::npos;
+}
+
+void ConfigManager::parseProviderSection(const std::string& key,
+                                         const std::string& value,
+                                         Provider provider) {
+  if (provider == Provider::UNKNOWN)
+    return;
+
+  auto provider_config = getProviderConfigMutable(provider);
+  if (!provider_config) {
+    ProviderConfig config = getProviderDefaultConfigValues(provider);
+    config_.providers.push_back(config);
+    provider_config = &config_.providers.back();
+  }
+
+  if (key == "api_key")
+    provider_config->api_key = value;
+  else if (key == "default_model")
+    provider_config->default_model = value;
+  else if (key == "max_tokens")
+    provider_config->default_max_tokens = std::stoi(value);
+  else if (key == "temperature")
+    provider_config->default_temperature = std::stod(value);
+  else if (key == "api_endpoint")
+    provider_config->api_endpoint = value;
 }
 }  // namespace pg_ai::config
