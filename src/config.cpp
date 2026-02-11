@@ -174,7 +174,7 @@ bool ConfigManager::parseConfig(const std::string& content) {
   std::istringstream stream(content);
   std::string line;
   std::string current_section;
-  long currentLine = 1;
+  long currentLine = 0;
   config_ = Configuration();
 
   while (std::getline(stream, line)) {
