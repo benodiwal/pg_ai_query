@@ -8,6 +8,7 @@ extern "C" {
 #include <executor/spi.h>
 }
 
+#include <algorithm>
 #include <cctype>
 #include <optional>
 #include <sstream>
@@ -33,7 +34,11 @@ namespace pg_ai {
 
 QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
   try {
-    if (request.natural_language.empty()) {
+    const auto& cfg = config::ConfigManager::getConfig();
+
+    // Validate input length before any API call
+    if (request.natural_language.length() >
+        static_cast<size_t>(cfg.max_query_length)) {
       return QueryResult{
           .generated_query = "",
           .explanation = "",
@@ -41,7 +46,25 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
           .row_limit_applied = false,
           .suggested_visualization = "",
           .success = false,
-          .error_message = "Natural language query cannot be empty"};
+          .error_message = "Query too long. Maximum " +
+                           std::to_string(cfg.max_query_length) +
+                           " characters allowed. Your query: " +
+                           std::to_string(request.natural_language.length()) +
+                           " characters."};
+    }
+
+    // Validate empty or whitespace-only query
+    if (request.natural_language.empty() ||
+        std::all_of(request.natural_language.begin(),
+                    request.natural_language.end(),
+                    [](unsigned char c) { return std::isspace(c); })) {
+      return QueryResult{.generated_query = "",
+                         .explanation = "",
+                         .warnings = {},
+                         .row_limit_applied = false,
+                         .suggested_visualization = "",
+                         .success = false,
+                         .error_message = "Query cannot be empty."};
     }
 
     // Use ProviderSelector to determine the provider
@@ -186,7 +209,9 @@ std::string QueryGenerator::buildPrompt(const QueryRequest& request) {
         }
       }
     }
-  } catch (...) {
+  } catch (const std::exception& e) {
+    logger::Logger::warning("Error building schema context for prompt: " +
+                            std::string(e.what()));
   }
 
   if (!schema_context.empty()) {

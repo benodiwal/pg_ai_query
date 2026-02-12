@@ -40,6 +40,7 @@ max_retries = 3
 # Query generation behavior
 enforce_limit = true
 default_limit = 1000
+max_query_length = 4000
 
 [prompts]
 # Custom system prompts (optional - empty values use built-in defaults)
@@ -150,6 +151,7 @@ Controls query generation behavior and safety features.
 |--------|------|---------|--------------|-------------|
 | `enforce_limit` | boolean | true | true, false | Always add LIMIT clause to SELECT queries |
 | `default_limit` | integer | 1000 | 1-1000000 | Default row limit when none specified |
+| `max_query_length` | integer | 4000 | 1+ | Maximum characters allowed in natural language query |
 
 #### enforce_limit
 
@@ -239,6 +241,19 @@ explain_system_prompt = /home/user/.pg_ai.explain.prompts
 - Add domain-specific performance considerations
 - Tailor explanations for different skill levels
 - Include organization-specific best practices
+
+#### max_query_length
+
+Maximum number of characters allowed in the natural language query. Queries longer than this are rejected before any API call to avoid excessive token usage and API limits.
+
+**Range:** 1 and above (values ≤ 0 are ignored; default is used)
+**Recommended:** 4000 for most use cases
+
+**Example:**
+```ini
+[query]
+max_query_length = 4000  # Reject queries longer than 4000 characters
+```
 
 ### [openai] Section
 

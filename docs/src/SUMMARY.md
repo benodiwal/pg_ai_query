@@ -21,6 +21,7 @@
 
 # Advanced Topics
 - [Schema Discovery](./schema-discovery.md)
+- [Architecture](./architecture.md)
 - [AI Providers](./providers.md)
 - [Performance & Best Practices](./best-practices.md)
 - [Integration Patterns](./integration.md)

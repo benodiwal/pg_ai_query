@@ -45,6 +45,7 @@ constexpr int DEFAULT_OPENAI_MAX_TOKENS = 16384;
 constexpr int DEFAULT_ANTHROPIC_MAX_TOKENS = 8192;
 constexpr int DEFAULT_MAX_TOKENS = 4096;
 constexpr double DEFAULT_TEMPERATURE = 0.7;
+constexpr int DEFAULT_MAX_QUERY_LENGTH = 4000;
 }  // namespace constants
 
 /**
@@ -96,6 +97,8 @@ struct Configuration {
   // Query generation settings
   bool enforce_limit;
   int default_limit;
+  /** Maximum characters allowed in natural language query (default: 4000) */
+  int max_query_length;
 
   // Response format settings
   bool show_explanation;
