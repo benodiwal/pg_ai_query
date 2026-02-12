@@ -40,6 +40,7 @@ add_executable(pg_ai_query_tests
     unit/test_response_formatter.cpp
     unit/test_utils.cpp
     unit/test_query_parser.cpp
+    unit/test_prompts.cpp
 )
 
 target_include_directories(pg_ai_query_tests PRIVATE

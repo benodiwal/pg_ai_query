@@ -31,6 +31,7 @@ constexpr const char* CONFIG_FILE_NAME = ".pg_ai.config";
 constexpr const char* SECTION_GENERAL = "general";
 constexpr const char* SECTION_QUERY = "query";
 constexpr const char* SECTION_RESPONSE = "response";
+constexpr const char* SECTION_PROMPTS = "prompts";
 constexpr const char* SECTION_OPENAI = "openai";
 constexpr const char* SECTION_ANTHROPIC = "anthropic";
 constexpr const char* SECTION_GEMINI = "gemini";
@@ -104,6 +105,10 @@ struct Configuration {
   bool show_warnings;
   bool show_suggested_visualization;
   bool use_formatted_response;
+
+  // System prompt settings (empty = use default prompts)
+  std::string system_prompt;
+  std::string explain_system_prompt;
 
   // Default constructor with sensible defaults
   Configuration();

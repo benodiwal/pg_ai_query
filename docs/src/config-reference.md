@@ -42,6 +42,11 @@ enforce_limit = true
 default_limit = 1000
 max_query_length = 4000
 
+[prompts]
+# Custom system prompts (optional - empty values use built-in defaults)
+# system_prompt = ""
+# explain_system_prompt = ""
+
 [openai]
 # OpenAI provider configuration
 api_key = ""
@@ -175,6 +180,67 @@ Default number of rows to limit when no explicit limit is requested.
 [query]
 default_limit = 2000  # Default to 2000 rows
 ```
+
+### [prompts] Section
+
+Customize AI system prompts for query generation and explanation.
+
+| Option | Type | Default | Values | Description |
+|--------|------|---------|--------|-------------|
+| `system_prompt` | string | "" | Any string or file path | Custom system prompt for query generation |
+| `explain_system_prompt` | string | "" | Any string or file path | Custom system prompt for query explanation |
+
+#### system_prompt
+
+Custom system prompt used for AI query generation. When empty, uses the built-in default prompt.
+
+**Format Options:**
+1. **Inline string** - Direct text in config file
+2. **File path** - Path to text file containing the prompt
+
+**Example - Inline:**
+```ini
+[prompts]
+system_prompt = "You are a PostgreSQL expert for financial data. Always include proper index recommendations."
+```
+
+**Example - File Path:**
+```ini
+[prompts]
+system_prompt = /home/user/.pg_ai.prompts
+```
+
+**Best Practices:**
+- Use file paths for prompts longer than 200 characters
+- Keep prompts focused and specific
+- Test custom prompts thoroughly before production use
+- Version control your custom prompt files
+
+#### explain_system_prompt
+
+Custom system prompt used for AI query explanation. When empty, uses the built-in default prompt.
+
+**Format Options:**
+1. **Inline string** - Direct text in config file
+2. **File path** - Path to text file containing the prompt
+
+**Example - Inline:**
+```ini
+[prompts]
+explain_system_prompt = "Analyze query performance focusing on index usage and join efficiency."
+```
+
+**Example - File Path:**
+```ini
+[prompts]
+explain_system_prompt = /home/user/.pg_ai.explain.prompts
+```
+
+**Use Cases:**
+- Customize explanation detail level
+- Add domain-specific performance considerations
+- Tailor explanations for different skill levels
+- Include organization-specific best practices
 
 #### max_query_length
 
@@ -346,6 +412,28 @@ default_limit = 200         # Smaller default limit
 [openai]
 api_key = "sk-proj-key-here"
 default_model = "gpt-3.5-turbo"  # Fastest model
+```
+
+### Custom Prompts Configuration
+
+```ini
+# Setup with custom prompts for domain-specific use case
+[general]
+log_level = "INFO"
+enable_logging = true
+
+[query]
+enforce_limit = true
+default_limit = 5000  # Higher limit for analytics
+
+[prompts]
+# Load custom prompts from files (recommended for long prompts)
+system_prompt = /home/user/.pg_ai.analytics.prompts
+explain_system_prompt = "Focus on materialized view usage and query optimization for data warehousing."
+
+[openai]
+api_key = "sk-proj-key-here"
+default_model = "gpt-4o"  # Use high-quality model for complex analytics
 ```
 
 ## Configuration Validation

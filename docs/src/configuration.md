@@ -68,6 +68,17 @@ show_suggested_visualization = true
 # When disabled, returns plain SQL with optional comments
 use_formatted_response = false
 
+[prompts]
+# Custom system prompt for query generation (optional)
+# If not specified, built-in default prompt will be used
+# Can be a quoted string or a file path
+# system_prompt = "You are a specialized SQL assistant for analytics..."
+
+# Custom system prompt for query explanation (optional)
+# If not specified, built-in default prompt will be used
+# Can be a quoted string or a file path
+# explain_system_prompt = "/path/to/custom_explain_prompt.txt"
+
 [openai]
 # Your OpenAI API key
 api_key = "sk-your-openai-api-key-here"
@@ -128,6 +139,51 @@ Controls how query results are formatted and what additional information is incl
 | `show_warnings` | boolean | true | Include warnings about performance, security, or data implications |
 | `show_suggested_visualization` | boolean | false | Include suggested visualization type for the query results |
 | `use_formatted_response` | boolean | false | Return structured JSON instead of plain SQL |
+
+### [prompts] Section
+
+Customize the system prompts used for AI query generation and explanation.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `system_prompt` | string | "" | Custom system prompt for query generation (empty = use built-in default) |
+| `explain_system_prompt` | string | "" | Custom system prompt for query explanation (empty = use built-in default) |
+
+**Prompt Configuration Options:**
+
+1. **Inline String** - Specify prompt directly in config:
+   ```ini
+   [prompts]
+   system_prompt = "You are a PostgreSQL analytics expert. Focus on business intelligence queries."
+   ```
+
+2. **File Path** - Load prompt from external file (recommended for long prompts):
+   ```ini
+   [prompts]
+   system_prompt = /home/user/.pg_ai.prompts
+   explain_system_prompt = /home/user/.pg_ai.explain.prompts
+   ```
+
+**Example Custom Prompt File** (`~/.pg_ai.prompts`):
+```
+You are a PostgreSQL data warehousing specialist.
+
+### Key Requirements:
+1. Optimize for large datasets (>1M rows)
+2. Use window functions for rankings
+3. Prefer materialized views for complex aggregations
+4. Always include proper indexes in recommendations
+
+### Output Format:
+Return JSON with: sql, explanation, warnings, row_limit_applied, suggested_visualization
+```
+
+**When to Use Custom Prompts:**
+- **Domain-Specific Queries**: Tailor prompts for specific industries (finance, healthcare, e-commerce)
+- **Performance Optimization**: Include best practices for your database schema
+- **Team Standards**: Enforce consistent SQL patterns across your organization
+- **Language Preferences**: Use non-English prompts for multilingual teams
+- **Specific Output Formats**: Customize JSON structure or add custom fields
 
 ### [openai] Section
 

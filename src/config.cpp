@@ -33,6 +33,10 @@ Configuration::Configuration() {
   show_suggested_visualization = false;
   use_formatted_response = false;
 
+  // System prompt defaults (empty means use built-in defaults)
+  system_prompt = "";
+  explain_system_prompt = "";
+
   // Default OpenAI provider
   default_provider.provider = Provider::OPENAI;
   default_provider.api_key = "";
@@ -227,6 +231,40 @@ bool ConfigManager::parseConfig(const std::string& content) {
         config_.show_suggested_visualization = (value == "true");
       else if (key == "use_formatted_response") {
         config_.use_formatted_response = (value == "true");
+      }
+    } else if (current_section == constants::SECTION_PROMPTS) {
+      // Handle multi-line prompts - read the full value
+      if (key == "system_prompt" || key == "explain_system_prompt") {
+        // For multi-line values, we need special handling
+        // The value might be a file path or raw text
+        if (value.length() >= 2 && value[0] == '"' && value.back() == '"') {
+          // Quoted string - use as-is
+          std::string prompt_value = value.substr(1, value.length() - 2);
+          if (key == "system_prompt")
+            config_.system_prompt = prompt_value;
+          else
+            config_.explain_system_prompt = prompt_value;
+        } else if (!value.empty() && value[0] != '#') {
+          // Unquoted value - check if it's a file path
+          std::string file_path = value;
+          // Trim whitespace
+          file_path.erase(0, file_path.find_first_not_of(" \t"));
+          file_path.erase(file_path.find_last_not_of(" \t") + 1);
+
+          auto file_result = utils::read_file(file_path);
+          if (file_result.first) {
+            if (key == "system_prompt")
+              config_.system_prompt = file_result.second;
+            else
+              config_.explain_system_prompt = file_result.second;
+          } else {
+            // Not a file, use as raw text
+            if (key == "system_prompt")
+              config_.system_prompt = value;
+            else
+              config_.explain_system_prompt = value;
+          }
+        }
       }
     } else if (current_section == constants::SECTION_OPENAI) {
       auto provider_config = getProviderConfigMutable(Provider::OPENAI);

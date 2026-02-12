@@ -1,4 +1,5 @@
 #include "include/prompts.hpp"
+#include "include/config.hpp"
 
 namespace pg_ai::prompts {
 
@@ -101,5 +102,21 @@ Your response should include:
 
 Keep the explanation concise but comprehensive. Use plain language that both developers and DBAs can understand.
 Format the response as plain text with clear section headers and bullet points. Do not use markdown syntax like **, ##, or ###.)";
+
+std::string getSystemPrompt() {
+  const auto& config = config::ConfigManager::getConfig();
+  if (!config.system_prompt.empty()) {
+    return config.system_prompt;
+  }
+  return SYSTEM_PROMPT;
+}
+
+std::string getExplainSystemPrompt() {
+  const auto& config = config::ConfigManager::getConfig();
+  if (!config.explain_system_prompt.empty()) {
+    return config.explain_system_prompt;
+  }
+  return EXPLAIN_SYSTEM_PROMPT;
+}
 
 }  // namespace pg_ai::prompts
