@@ -5,6 +5,7 @@
 #include "include/constants.hpp"
 
 using namespace pg_ai::config;
+using namespace pg_ai::constants;
 using namespace pg_ai::test_utils;
 
 class ConfigManagerTest : public ::testing::Test {
@@ -223,12 +224,12 @@ api_key = sk-ant-test
 
   const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
   ASSERT_NE(openai, nullptr);
-  EXPECT_EQ(openai->default_model, pg_ai::constants::DEFAULT_OPENAI_MODEL);
+  EXPECT_EQ(openai->default_model, DEFAULT_OPENAI_MODEL);
 
   const auto* anthropic = ConfigManager::getProviderConfig(Provider::ANTHROPIC);
   ASSERT_NE(anthropic, nullptr);
   EXPECT_EQ(anthropic->default_model,
-            pg_ai::constants::DEFAULT_ANTHROPIC_MODEL);
+            DEFAULT_ANTHROPIC_MODEL);
 }
 
 // Test numeric value parsing
@@ -307,7 +308,7 @@ TEST(ConfigurationTest, DefaultConstructorSetsDefaults) {
 
   EXPECT_EQ(config.default_provider.provider, Provider::OPENAI);
   EXPECT_EQ(config.default_provider.default_model,
-            pg_ai::constants::DEFAULT_OPENAI_MODEL);
+            DEFAULT_OPENAI_MODEL);
 }
 
 // Test ProviderConfig default constructor
