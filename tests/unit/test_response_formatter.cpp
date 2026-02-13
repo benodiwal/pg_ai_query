@@ -69,6 +69,45 @@ TEST_F(ResponseFormatterTest, PlainTextWithExplanation) {
   EXPECT_THAT(output, testing::HasSubstr("Retrieves all users"));
 }
 
+// Test plain text wrapping for long explanation
+TEST_F(ResponseFormatterTest, PlainTextLongExplanationWrapping) {
+  auto result = createBasicResult();
+  result.explanation = 
+      "This is a very long explanation that definitely exceeds seventy "
+      "characters in length and should be wrapped across multiple lines to "
+      "ensure proper formatting and readability in the output";
+  auto config = createConfig(false, true, false, false);
+
+  std::string output = ResponseFormatter::formatResponse(result, config);
+
+  EXPECT_THAT(output, testing::HasSubstr("-- Explanation:"));
+  
+  EXPECT_THAT(output, testing::HasSubstr("This is a very long explanation"));
+  EXPECT_THAT(output, testing::HasSubstr("ensure proper formatting"));
+  
+  std::istringstream stream(output);
+  std::string line;
+  int explanation_lines = 0;
+  bool in_explanation = false;
+  
+  while (std::getline(stream, line)) {
+    if (line.find("-- Explanation:") != std::string::npos) {
+      in_explanation = true;
+      continue;
+    }
+    if (in_explanation) {
+      if (line.find("--   ") == 0) {
+        explanation_lines++;
+        EXPECT_LE(line.length(), 70);
+      } else {
+        break;  
+      }
+    }
+  }
+  
+  EXPECT_GT(explanation_lines, 1);
+}
+
 // Test plain text output with single warning
 TEST_F(ResponseFormatterTest, PlainTextWithSingleWarning) {
   auto result = createBasicResult();
@@ -91,6 +130,33 @@ TEST_F(ResponseFormatterTest, PlainTextWithMultipleWarnings) {
   EXPECT_THAT(output, testing::HasSubstr("-- Warnings:"));
   EXPECT_THAT(output, testing::HasSubstr("1. Consider adding LIMIT"));
   EXPECT_THAT(output, testing::HasSubstr("2. Full table scan"));
+}
+
+TEST_F(ResponseFormatterTest, PlainTextLongWarningWrapping) {
+  auto result = createBasicResult();
+  result.warnings = {
+      "This warning message is intentionally very long to test the text "
+      "wrapping functionality and ensure that it properly breaks across "
+      "multiple lines without exceeding the maximum width limit"
+  };
+  auto config = createConfig(false, false, true, false);
+
+  std::string output = ResponseFormatter::formatResponse(result, config);
+
+  EXPECT_THAT(output, testing::HasSubstr("-- Warning:"));
+  
+  std::istringstream stream(output);
+  std::string line;
+  int warning_lines = 0;
+  
+  while (std::getline(stream, line)) {
+    if (line.find("--   ") == 0) {
+      warning_lines++;
+      EXPECT_LE(line.length(), 70);
+    }
+  }
+  
+  EXPECT_GT(warning_lines, 1);
 }
 
 // Test plain text output with visualization
