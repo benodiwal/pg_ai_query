@@ -98,7 +98,7 @@ TEST_F(UtilsTest, FormatAPIErrorValidJSON) {
         }
     })";
 
-  std::string formatted = formatAPIError(raw_error);
+  std::string formatted = formatAPIError("TestProvider", 404, raw_error);
 
   EXPECT_THAT(formatted, testing::HasSubstr("Invalid model"));
   EXPECT_THAT(formatted, testing::HasSubstr("invalid-model-name"));
@@ -113,9 +113,9 @@ TEST_F(UtilsTest, FormatAPIErrorGenericMessage) {
         }
     })";
 
-  std::string formatted = formatAPIError(raw_error);
+  std::string formatted = formatAPIError("TestProvider", 429, raw_error);
 
-  EXPECT_EQ(formatted, "Rate limit exceeded. Please try again later.");
+  EXPECT_EQ(formatted, "Rate limit exceeded. Please wait before making more requests.");
 }
 
 // Test formatAPIError with not_found_error but no model info
@@ -127,7 +127,7 @@ TEST_F(UtilsTest, FormatAPIErrorNotFoundNoModel) {
         }
     })";
 
-  std::string formatted = formatAPIError(raw_error);
+  std::string formatted = formatAPIError("TestProvider", 404, raw_error);
 
   EXPECT_THAT(formatted, testing::HasSubstr("Model not found"));
 }
@@ -136,7 +136,7 @@ TEST_F(UtilsTest, FormatAPIErrorNotFoundNoModel) {
 TEST_F(UtilsTest, FormatAPIErrorInvalidJSON) {
   std::string raw_error = "This is not JSON";
 
-  std::string formatted = formatAPIError(raw_error);
+  std::string formatted = formatAPIError("TestProvider", 0, raw_error);
 
   EXPECT_EQ(formatted, raw_error);
 }
@@ -146,16 +146,16 @@ TEST_F(UtilsTest, FormatAPIErrorJSONInText) {
   std::string raw_error =
       R"(API Error: {"error": {"message": "Authentication failed"}})";
 
-  std::string formatted = formatAPIError(raw_error);
+  std::string formatted = formatAPIError("TestProvider", 401, raw_error);
 
-  EXPECT_EQ(formatted, "Authentication failed");
+  EXPECT_EQ(formatted, "Invalid API key for TestProvider. Please check your ~/.pg_ai.config file.");
 }
 
 // Test formatAPIError with empty error object
 TEST_F(UtilsTest, FormatAPIErrorEmptyError) {
   std::string raw_error = R"({"error": {}})";
 
-  std::string formatted = formatAPIError(raw_error);
+  std::string formatted = formatAPIError("TestProvider", 0, raw_error);
 
   // Falls through to return raw error
   EXPECT_EQ(formatted, raw_error);
@@ -165,7 +165,7 @@ TEST_F(UtilsTest, FormatAPIErrorEmptyError) {
 TEST_F(UtilsTest, FormatAPIErrorMissingErrorKey) {
   std::string raw_error = R"({"status": "error", "code": 500})";
 
-  std::string formatted = formatAPIError(raw_error);
+  std::string formatted = formatAPIError("TestProvider", 500, raw_error);
 
   EXPECT_EQ(formatted, raw_error);
 }
