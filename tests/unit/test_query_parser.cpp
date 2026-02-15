@@ -310,6 +310,242 @@ TEST_F(QueryParserTest, ParseResponse_DefaultVisualization) {
   EXPECT_EQ(result.suggested_visualization, "table");
 }
 
+// ============================================================================
+// Error keywords (parseQueryResponse) - one test per phrase
+// ============================================================================
+
+TEST_F(QueryParserTest, DetectsCannotGenerateQueryError) {
+  std::string response = R"({
+        "sql": "",
+        "explanation": "Cannot generate query because the users table does not exist."
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+  EXPECT_THAT(result.error_message, testing::HasSubstr("Cannot generate query"));
+}
+
+TEST_F(QueryParserTest, DetectsCannotCreateQueryError) {
+  std::string response = R"({
+        "sql": "SELECT 1",
+        "explanation": "Cannot create query for this request."
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+  EXPECT_THAT(result.error_message, testing::HasSubstr("Cannot create query"));
+}
+
+TEST_F(QueryParserTest, DetectsUnableToGenerateError) {
+  std::string response = R"({
+        "sql": "",
+        "explanation": "Unable to generate a valid SQL query."
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+  EXPECT_THAT(result.error_message, testing::HasSubstr("Unable to generate"));
+}
+
+TEST_F(QueryParserTest, DetectsDoesNotExistError) {
+  std::string response = R"({
+        "sql": "SELECT * FROM foo",
+        "explanation": "The table does not exist in the schema."
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+  EXPECT_THAT(result.error_message, testing::HasSubstr("does not exist"));
+}
+
+TEST_F(QueryParserTest, DetectsDoNotExistError) {
+  std::string response = R"({
+        "sql": "SELECT * FROM bar",
+        "explanation": "The requested tables do not exist."
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+  EXPECT_THAT(result.error_message, testing::HasSubstr("do not exist"));
+}
+
+TEST_F(QueryParserTest, DetectsTableNotFoundError) {
+  std::string response = R"({
+        "sql": "SELECT * FROM nonexistent",
+        "explanation": "Table not found in the schema."
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+  EXPECT_THAT(result.error_message, testing::HasSubstr("Table not found"));
+}
+
+TEST_F(QueryParserTest, DetectsColumnNotFoundError) {
+  std::string response = R"({
+        "sql": "SELECT missing_col FROM users",
+        "explanation": "Column not found in the table."
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+  EXPECT_THAT(result.error_message, testing::HasSubstr("Column not found"));
+}
+
+TEST_F(QueryParserTest, DetectsNoSuchTableError) {
+  std::string response = R"({
+        "sql": "SELECT * FROM x",
+        "explanation": "No such table in the database."
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+  EXPECT_THAT(result.error_message, testing::HasSubstr("No such table"));
+}
+
+TEST_F(QueryParserTest, DetectsNoSuchColumnError) {
+  std::string response = R"({
+        "sql": "SELECT y FROM users",
+        "explanation": "No such column in the table."
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+  EXPECT_THAT(result.error_message, testing::HasSubstr("No such column"));
+}
+
+// ============================================================================
+// Warning-based error detection
+// ============================================================================
+
+TEST_F(QueryParserTest, DetectsErrorInWarning) {
+  std::string response = R"({
+        "sql": "SELECT * FROM users",
+        "explanation": "Query generated successfully",
+        "warnings": ["error: table 'foo' is missing"]
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+}
+
+TEST_F(QueryParserTest, DetectsDoesNotExistInWarning) {
+  std::string response = R"({
+        "sql": "SELECT * FROM users",
+        "explanation": "Retrieves users",
+        "warnings": ["Table 'foo' does not exist"]
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+}
+
+TEST_F(QueryParserTest, DetectsDoNotExistInWarning) {
+  std::string response = R"({
+        "sql": "SELECT * FROM users",
+        "explanation": "Retrieves users",
+        "warnings": ["Required columns do not exist"]
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+}
+
+// ============================================================================
+// System table blocking (parseQueryResponse)
+// ============================================================================
+
+TEST_F(QueryParserTest, BlocksInformationSchemaAccess) {
+  std::string response = R"({
+        "sql": "SELECT * FROM information_schema.tables",
+        "explanation": "Lists all tables"
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+  EXPECT_THAT(result.error_message, testing::HasSubstr("system tables"));
+}
+
+TEST_F(QueryParserTest, BlocksPgCatalogAccess) {
+  std::string response = R"({
+        "sql": "SELECT * FROM pg_catalog.pg_tables",
+        "explanation": "Lists system tables"
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+  EXPECT_THAT(result.error_message, testing::HasSubstr("system tables"));
+}
+
+TEST_F(QueryParserTest, BlocksSystemTableAccessCaseInsensitive) {
+  std::string response = R"({
+        "sql": "SELECT * FROM INFORMATION_SCHEMA.TABLES",
+        "explanation": "Lists tables"
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_FALSE(result.success);
+  EXPECT_THAT(result.error_message, testing::HasSubstr("system tables"));
+}
+
+// ============================================================================
+// JSON extraction edge cases (parseQueryResponse)
+// ============================================================================
+
+TEST_F(QueryParserTest, HandlesJSONInMarkdownBlock) {
+  std::string response =
+      "Here's your query:\n```json\n{\"sql\": \"SELECT 1\", \"explanation\": "
+      "\"test\"}\n```";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_TRUE(result.success);
+  EXPECT_EQ(result.generated_query, "SELECT 1");
+}
+
+TEST_F(QueryParserTest, HandlesDirectJSONWithoutCodeBlock) {
+  std::string response = R"({"sql": "SELECT id, name FROM products", "explanation": "Lists products"})";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_TRUE(result.success);
+  EXPECT_EQ(result.generated_query, "SELECT id, name FROM products");
+  EXPECT_EQ(result.explanation, "Lists products");
+}
+
+TEST_F(QueryParserTest, FallsBackToRawSQL) {
+  std::string response = "SELECT * FROM users WHERE id = 1";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_TRUE(result.success);
+  EXPECT_EQ(result.generated_query, response);
+}
+
+TEST_F(QueryParserTest, HandlesMalformedJSON) {
+  std::string response = R"({sql: "broken")";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_TRUE(result.success);
+  EXPECT_EQ(result.generated_query, response);
+}
+
+// ============================================================================
+// Warning extraction (parseQueryResponse)
+// ============================================================================
+
+TEST_F(QueryParserTest, ExtractsWarningsAsArray) {
+  std::string response = R"({
+        "sql": "SELECT * FROM users",
+        "explanation": "Gets all users",
+        "warnings": ["May return large results", "Consider adding LIMIT"]
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_TRUE(result.success);
+  EXPECT_EQ(result.warnings.size(), 2);
+  EXPECT_EQ(result.warnings[0], "May return large results");
+  EXPECT_EQ(result.warnings[1], "Consider adding LIMIT");
+}
+
+TEST_F(QueryParserTest, ExtractsWarningsAsString) {
+  std::string response = R"({
+        "sql": "SELECT * FROM users",
+        "explanation": "Gets all users",
+        "warnings": "Consider adding an index"
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_TRUE(result.success);
+  EXPECT_EQ(result.warnings.size(), 1);
+  EXPECT_EQ(result.warnings[0], "Consider adding an index");
+}
+
+TEST_F(QueryParserTest, HandlesMissingWarningsField) {
+  std::string response = R"({
+        "sql": "SELECT * FROM users",
+        "explanation": "Gets all users"
+    })";
+  auto result = QueryParser::parseQueryResponse(response);
+  EXPECT_TRUE(result.success);
+  EXPECT_TRUE(result.warnings.empty());
+}
+
 // Test with fixture files
 TEST_F(QueryParserTest, ParseResponse_ValidQueryFixture) {
   std::string response = readResponseFixture("valid_query_response.json");
