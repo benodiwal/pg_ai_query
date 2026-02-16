@@ -384,15 +384,47 @@ In addition to the configuration file, API keys can be provided via environment 
 |----------------------|-------------|
 | `OPENAI_API_KEY` | API key for OpenAI |
 | `ANTHROPIC_API_KEY` | API key for Anthropic |
+| `GEMINI_API_KEY`   | API key for Gemini |
 
 **Note:** Environment variables take precedence over values specified in the configuration file.
 
-### Example Usage
+### How to Configure
+The pg_ai_query extension ignores environment variables when started directly from SQL or via the extension itself.
+To properly configure environment variables for API keys or other runtime settings,
+you must use one of the following approaches depending on your PostgreSQL setup:
+
+**1.Systemd Service File (Recommended for system-managed PostgreSQL)**
+
+- Edit the PostgreSQL systemd service file or create a drop-in override
+### Example:
+
+```ini
+[Service]
+Environment="OPENAI_API_KEY=sk-..."
+Environment="ANTHROPIC_API_KEY=sk-ant-..."
+```
+Reload systemd and restart PostgreSQL:
 
 ```bash
-export OPENAI_API_KEY="sk-..."
-export ANTHROPIC_API_KEY="sk-ant-..."
+sudo systemctl daemon-reexec
+sudo systemctl restart postgresql
 ```
+
+**2.Cluster Environment File (Debian/Ubuntu with pg_ctlcluster)**
+- For clusters managed by pg_ctlcluster, add variables to the cluster-specific environment at `/etc/postgresql/<version>/<cluster>/environment`
+
+### Example:
+```bash
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Restart the cluster to apply:
+`sudo pg_ctlcluster 17 main restart`
+
+**Notes:**
+- Directly setting environment variables in the shell or .bashrc of the postgres user will not reliably propagate to the server if PostgreSQL is started via systemd.
+- Always restart PostgreSQL after changing environment settings to ensure the extension can access them.
 
 ## Security Considerations
 

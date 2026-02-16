@@ -353,3 +353,36 @@ TEST_F(ConfigManagerTest, LoadsAllThreeProviders) {
   EXPECT_EQ(anthropic->api_key, "sk-ant-test-key-67890");
   EXPECT_EQ(gemini->api_key, "AIzaSyTest-gemini-key-valid");
 }
+
+
+TEST_F(ConfigManagerTest, LoadsAllEnvVariables){
+  TempConfigFile temp_config(R"(
+[openai]
+api_key="openai-will-get-override"
+[anthropic]
+api_key="anthropic-will-get-override"
+[gemini]
+api_key="gemini-will-get-override"
+)");
+
+  setenv(OPENAI_API_KEY_VARIABLE_NAME,"openai-Correct-one",1);
+  setenv(ANTHROPIC_API_KEY_VARIABLE_NAME,"anthropic-Correct-one",1);
+  setenv(GEMINI_API_KEY_VARIABLE_NAME,"gemini-Correct-one",1);
+  ASSERT_TRUE(ConfigManager::loadConfig(temp_config.path()));
+
+  const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
+  const auto* anthropic = ConfigManager::getProviderConfig(Provider::ANTHROPIC);
+  const auto* gemini = ConfigManager::getProviderConfig(Provider::GEMINI);
+
+  ASSERT_NE(openai, nullptr);
+  ASSERT_NE(anthropic, nullptr);
+  ASSERT_NE(gemini, nullptr);
+
+  EXPECT_EQ(openai->api_key, "openai-Correct-one");
+  EXPECT_EQ(anthropic->api_key, "anthropic-Correct-one");
+  EXPECT_EQ(gemini->api_key, "gemini-Correct-one");
+
+  unsetenv(OPENAI_API_KEY_VARIABLE_NAME);
+  unsetenv(ANTHROPIC_API_KEY_VARIABLE_NAME);
+  unsetenv(GEMINI_API_KEY_VARIABLE_NAME);
+}
