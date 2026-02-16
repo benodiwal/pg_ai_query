@@ -98,16 +98,17 @@ bool ConfigManager::loadConfig(const std::string& config_path) {
 void ConfigManager::loadEnvConfig() {
   // NOTE for developers: Environment variable loading is disabled for now - all
   // config via ~/.pg_ai.config
-  const auto * open_ai_env = getenv(constants::OPENAI_API_KEY_VARIABLE_NAME);
-  const auto * anthropic_env = getenv(constants::ANTHROPIC_API_KEY_VARIABLE_NAME);
-  const auto * gemini_env = getenv(constants::GEMINI_API_KEY_VARIABLE_NAME);
+  const auto* open_ai_env = getenv(constants::OPENAI_API_KEY_VARIABLE_NAME);
+  const auto* anthropic_env =
+      getenv(constants::ANTHROPIC_API_KEY_VARIABLE_NAME);
+  const auto* gemini_env = getenv(constants::GEMINI_API_KEY_VARIABLE_NAME);
 
-
-  if (open_ai_env != nullptr){
-    ProviderConfig * provider_config = getProviderConfigMutable(Provider::OPENAI);
+  if (open_ai_env != nullptr) {
+    ProviderConfig* provider_config =
+        getProviderConfigMutable(Provider::OPENAI);
     if (provider_config != nullptr)
       provider_config->api_key = open_ai_env;
-    else{
+    else {
       ProviderConfig config;
       config.api_key = open_ai_env;
       config.provider = Provider::OPENAI;
@@ -116,11 +117,12 @@ void ConfigManager::loadEnvConfig() {
     }
   }
 
-  if (anthropic_env != nullptr){
-    ProviderConfig * provider_config = getProviderConfigMutable(Provider::ANTHROPIC);
+  if (anthropic_env != nullptr) {
+    ProviderConfig* provider_config =
+        getProviderConfigMutable(Provider::ANTHROPIC);
     if (provider_config != nullptr)
       provider_config->api_key = anthropic_env;
-    else{
+    else {
       ProviderConfig config;
       config.api_key = anthropic_env;
       config.provider = Provider::ANTHROPIC;
@@ -130,11 +132,12 @@ void ConfigManager::loadEnvConfig() {
     }
   }
 
-  if (gemini_env != nullptr){
-    ProviderConfig * provider_config = getProviderConfigMutable(Provider::GEMINI);
+  if (gemini_env != nullptr) {
+    ProviderConfig* provider_config =
+        getProviderConfigMutable(Provider::GEMINI);
     if (provider_config != nullptr)
       provider_config->api_key = gemini_env;
-    else{
+    else {
       ProviderConfig config;
       config.api_key = gemini_env;
       config.provider = Provider::GEMINI;
