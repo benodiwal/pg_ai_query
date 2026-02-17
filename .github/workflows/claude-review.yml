@@ -15,7 +15,7 @@ jobs:
     if: |
       github.event.issue.pull_request &&
       contains(github.event.comment.body, '/claude') &&
-      github.event.comment.user.login == github.repository_owner
+      contains(fromJson('["OWNER","COLABORATOR"]'), github.event.comment.author_association)
     runs-on: macos-latest
     steps:
       - name: Add reaction to comment
