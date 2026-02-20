@@ -147,6 +147,7 @@ Controls query generation behavior and safety features.
 | `enforce_limit` | boolean | true | true, false | Always add LIMIT clause to SELECT queries |
 | `default_limit` | integer | 1000 | 1-1000000 | Default row limit when none specified |
 | `max_query_length` | integer | 4000 | 1+ | Maximum characters allowed in natural language query |
+| `allow_system_tables` | boolean | false | true, false | Allow generated queries to use information_schema / pg_catalog (e.g. for schema introspection) |
 
 #### enforce_limit
 
@@ -187,6 +188,20 @@ Maximum number of characters allowed in the natural language query. Queries long
 ```ini
 [query]
 max_query_length = 4000  # Reject queries longer than 4000 characters
+```
+
+#### allow_system_tables
+
+When enabled, the AI may generate queries that use `information_schema` or `pg_catalog` (e.g. to show table or column structure). By default these are forbidden so that generated queries only target user data.
+
+**Values:**
+- `false`: Do not allow system table access (default)
+- `true`: Allow system table access for schema introspection
+
+**Example:**
+```ini
+[query]
+allow_system_tables = true  # Allow "show me the schema of table X" style queries
 ```
 
 ### [openai] Section

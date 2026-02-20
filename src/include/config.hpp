@@ -57,6 +57,8 @@ struct Configuration {
   int default_limit;
   /** Maximum characters allowed in natural language query (default: 4000) */
   int max_query_length;
+  /** Allow generated queries to use information_schema / pg_catalog (e.g. for schema introspection). Default: false. */
+  bool allow_system_tables;
 
   // Response format settings
   bool show_explanation;

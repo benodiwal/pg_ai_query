@@ -204,6 +204,7 @@ max_retries = <integer>
 # Query generation settings
 enforce_limit = true | false
 default_limit = <integer>
+allow_system_tables = true | false
 
 [openai]
 # OpenAI provider settings
@@ -227,6 +228,7 @@ default_model = "claude-sonnet-4-5-20250929"
 | `max_retries` | integer | 0-10 | 3 |
 | `enforce_limit` | boolean | true, false | true |
 | `default_limit` | integer | 1-1000000 | 1000 |
+| `allow_system_tables` | boolean | true, false | false |
 | `api_key` | string | Provider-specific format | "" |
 | `default_model` | string | Provider-specific values | Provider default |
 
@@ -291,7 +293,7 @@ _pg_ai_validate_query(query text) RETURNS boolean;
 The extension performs these security checks:
 
 - **SQL Injection Prevention**: Sanitizes all inputs
-- **System Table Protection**: Blocks access to pg_* and information_schema
+- **System Table Protection**: By default blocks access to pg_catalog and information_schema (configurable via `allow_system_tables`)
 - **DDL Restriction**: Can generate DDL but with warnings
 - **Privilege Respect**: Honors PostgreSQL permission system
 

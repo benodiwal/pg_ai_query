@@ -138,7 +138,8 @@ bool QueryParser::hasErrorIndicators(const std::string& explanation,
   return false;
 }
 
-QueryResult QueryParser::parseQueryResponse(const std::string& response_text) {
+QueryResult QueryParser::parseQueryResponse(const std::string& response_text,
+                                            bool allow_system_table_access) {
   // Parse SQL, explanation, and metadata from the AI response
   nlohmann::json j = extractSQLFromResponse(response_text);
   std::string sql = j.value("sql", "");
@@ -190,8 +191,8 @@ QueryResult QueryParser::parseQueryResponse(const std::string& response_text) {
                        .error_message = ""};
   }
 
-  // Check for system table access
-  if (accessesSystemTables(sql)) {
+  // Check for system table access (skip when allow_system_table_access is true)
+  if (!allow_system_table_access && accessesSystemTables(sql)) {
     return QueryResult{
         .generated_query = "",
         .explanation = "",

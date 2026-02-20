@@ -124,6 +124,15 @@ Datum get_table_details(PG_FUNCTION_ARGS) {
     std::string schema_name =
         schema_name_arg ? text_to_cstring(schema_name_arg) : "public";
 
+    // If only one argument was passed and it contains a dot, treat as schema.table
+    if (!schema_name_arg) {
+      size_t dot = table_name.find('.');
+      if (dot != std::string::npos && dot > 0 && dot < table_name.size() - 1) {
+        schema_name = table_name.substr(0, dot);
+        table_name = table_name.substr(dot + 1);
+      }
+    }
+
     auto result =
         pg_ai::QueryGenerator::getTableDetails(table_name, schema_name);
 

@@ -271,6 +271,7 @@ enable_logging = true
 
 [query]
 enforce_limit = false
+allow_system_tables = true
 
 [response]
 show_explanation = true
@@ -284,6 +285,7 @@ use_formatted_response = true
   const auto& config = ConfigManager::getConfig();
   EXPECT_TRUE(config.enable_logging);
   EXPECT_FALSE(config.enforce_limit);
+  EXPECT_TRUE(config.allow_system_tables);
   EXPECT_TRUE(config.show_explanation);
   EXPECT_FALSE(config.show_warnings);
   EXPECT_TRUE(config.show_suggested_visualization);
@@ -301,6 +303,7 @@ TEST(ConfigurationTest, DefaultConstructorSetsDefaults) {
   EXPECT_TRUE(config.enforce_limit);
   EXPECT_EQ(config.default_limit, 1000);
   EXPECT_EQ(config.max_query_length, 4000);
+  EXPECT_FALSE(config.allow_system_tables);
   EXPECT_TRUE(config.show_explanation);
   EXPECT_TRUE(config.show_warnings);
   EXPECT_FALSE(config.show_suggested_visualization);

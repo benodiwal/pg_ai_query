@@ -47,6 +47,7 @@ LANGUAGE C;
 -- Example usage:
 -- SELECT get_database_tables();
 -- SELECT get_table_details('users');
+-- SELECT get_table_details('sample2.accounts');  -- schema-qualified: schema.table
 -- SELECT get_table_details('orders', 'public');
 
 COMMENT ON FUNCTION get_database_tables() IS
@@ -57,10 +58,10 @@ Example: SELECT get_database_tables();';
 COMMENT ON FUNCTION get_table_details(text, text) IS
 'Returns detailed JSON information about a specific table including columns with their data types, constraints, foreign keys, and indexes.
 Parameters:
-- table_name: Name of the table to inspect
-- schema_name: Schema containing the table (default: public)
+- table_name: Name of the table, or schema-qualified name (e.g. sample2.accounts) when schema_name is omitted
+- schema_name: Schema containing the table (default: public). Omit to use schema.table form in table_name.
 Returns: JSON object with complete table schema information
-Example: SELECT get_table_details(''orders'', ''public'');';
+Example: SELECT get_table_details(''orders'', ''public''); SELECT get_table_details(''sample2.accounts'');';
 
 -- Explain query function: Runs EXPLAIN ANALYZE and provides AI-generated explanation
 CREATE OR REPLACE FUNCTION explain_query(

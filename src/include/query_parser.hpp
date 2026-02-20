@@ -35,9 +35,11 @@ class QueryParser {
    * @brief Parse a JSON response into a QueryResult struct
    *
    * @param response_text The raw response text from the LLM
+   * @param allow_system_table_access If true, do not treat information_schema/pg_catalog access as error
    * @return QueryResult with parsed fields and success/error status
    */
-  static QueryResult parseQueryResponse(const std::string& response_text);
+  static QueryResult parseQueryResponse(const std::string& response_text,
+                                        bool allow_system_table_access = false);
 
   /**
    * @brief Check if a SQL query accesses system tables
