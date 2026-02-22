@@ -521,6 +521,13 @@ ExplainResult QueryGenerator::explainQuery(const ExplainRequest& request) {
       return result;
     }
 
+    if (!utils::is_select_only_query(request.query_text)) {
+      result.error_message =
+          "Only SELECT queries can be explained. Mutating or DDL statements "
+          "(e.g. INSERT, UPDATE, DELETE, DROP) are not allowed for safety.";
+      return result;
+    }
+
     result.query = request.query_text;
 
     SPIConnection spi_conn;
