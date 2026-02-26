@@ -35,7 +35,7 @@ class TempConfigFile {
  public:
   TempConfigFile(const std::string& content) {
     path_ = std::filesystem::temp_directory_path() /
-            ("pg_ai_test_config_" + std::to_string(rand()) + ".ini");
+            ("ai_test_config_" + std::to_string(rand()) + ".ini");
     std::ofstream file(path_);
     file << content;
   }
