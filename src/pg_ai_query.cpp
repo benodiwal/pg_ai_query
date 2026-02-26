@@ -21,7 +21,8 @@ namespace {
 /// Converts PostgreSQL text* to std::string and frees the palloc'd buffer.
 /// text_to_cstring() returns memory that must be freed with pfree().
 inline std::string pg_text_to_string(const text* t) {
-  if (!t) return "";
+  if (!t)
+    return "";
   char* cstr = text_to_cstring(t);
   std::string result(cstr);
   pfree(cstr);
@@ -54,7 +55,8 @@ Datum generate_query(PG_FUNCTION_ARGS) {
     std::string nl_query = pg_text_to_string(nl_query_arg);
     std::string api_key = pg_text_to_string(api_key_arg);
     std::string provider = pg_text_to_string(provider_arg);
-    if (provider.empty()) provider = "auto";
+    if (provider.empty())
+      provider = "auto";
 
     pg_ai::QueryRequest request{
         .natural_language = nl_query, .api_key = api_key, .provider = provider};
@@ -134,7 +136,8 @@ Datum get_table_details(PG_FUNCTION_ARGS) {
 
     std::string table_name = pg_text_to_string(table_name_arg);
     std::string schema_name = pg_text_to_string(schema_name_arg);
-    if (schema_name.empty()) schema_name = "public";
+    if (schema_name.empty())
+      schema_name = "public";
 
     auto result =
         pg_ai::QueryGenerator::getTableDetails(table_name, schema_name);
@@ -194,7 +197,8 @@ Datum explain_query(PG_FUNCTION_ARGS) {
     std::string query_text = pg_text_to_string(query_text_arg);
     std::string api_key = pg_text_to_string(api_key_arg);
     std::string provider = pg_text_to_string(provider_arg);
-    if (provider.empty()) provider = "auto";
+    if (provider.empty())
+      provider = "auto";
 
     pg_ai::ExplainRequest request{
         .query_text = query_text, .api_key = api_key, .provider = provider};
