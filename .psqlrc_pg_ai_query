@@ -1,0 +1,41 @@
+\set QUIET 1
+
+SELECT EXISTS (
+    SELECT 1
+    FROM pg_proc
+    WHERE proname = 'push_env_var'
+) AS has_push
+\gset
+
+\if :has_push
+    \set OPENAI_API_KEY `echo $OPENAI_API_KEY`
+    \set ANTHROPIC_API_KEY `echo $ANTHROPIC_API_KEY`
+    \set GEMINI_API_KEY `echo $GEMINI_API_KEY`
+
+    \pset tuples_only on
+
+    SELECT format(
+        'SELECT push_env_var(%L, %L);',
+        'OPENAI_API_KEY',
+        :'OPENAI_API_KEY'
+    )
+    \gexec
+
+    SELECT format(
+        'SELECT push_env_var(%L, %L);',
+        'ANTHROPIC_API_KEY',
+        :'ANTHROPIC_API_KEY'
+    )
+    \gexec
+
+    SELECT format(
+        'SELECT push_env_var(%L, %L);',
+        'GEMINI_API_KEY',
+        :'GEMINI_API_KEY'
+    )
+    \gexec
+
+    \pset tuples_only off
+\endif
+
+\set QUIET 0

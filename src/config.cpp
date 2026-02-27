@@ -1,5 +1,10 @@
 #include "include/config.hpp"
 
+extern "C" {
+#include <postgres.h>
+#include <executor/spi.h>
+}
+
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
@@ -98,6 +103,88 @@ bool ConfigManager::loadConfig(const std::string& config_path) {
 void ConfigManager::loadEnvConfig() {
   // NOTE for developers: Environment variable loading is disabled for now - all
   // config via ~/.pg_ai.config
+  const auto* open_ai_env = readUserApiKeyEnvVariable(constants::OPENAI_API_KEY_VARIABLE_NAME);
+  const auto* anthropic_env =
+      readUserApiKeyEnvVariable(constants::ANTHROPIC_API_KEY_VARIABLE_NAME);
+  const auto* gemini_env = readUserApiKeyEnvVariable(constants::GEMINI_API_KEY_VARIABLE_NAME);
+
+  if (open_ai_env != nullptr) {
+    ProviderConfig* provider_config =
+        getProviderConfigMutable(Provider::OPENAI);
+    if (provider_config != nullptr)
+      provider_config->api_key = open_ai_env;
+    else {
+      ProviderConfig config;
+      config.api_key = open_ai_env;
+      config.provider = Provider::OPENAI;
+      config.default_model = constants::DEFAULT_OPENAI_MODEL;
+      config_.providers.push_back(config);
+    }
+  }
+
+  if (anthropic_env != nullptr) {
+    ProviderConfig* provider_config =
+        getProviderConfigMutable(Provider::ANTHROPIC);
+    if (provider_config != nullptr)
+      provider_config->api_key = anthropic_env;
+    else {
+      ProviderConfig config;
+      config.api_key = anthropic_env;
+      config.provider = Provider::ANTHROPIC;
+      config.default_model = constants::DEFAULT_ANTHROPIC_MODEL;
+      config.default_max_tokens = constants::DEFAULT_ANTHROPIC_MAX_TOKENS;
+      config_.providers.push_back(config);
+    }
+  }
+
+  if (gemini_env != nullptr) {
+    ProviderConfig* provider_config =
+        getProviderConfigMutable(Provider::GEMINI);
+    if (provider_config != nullptr)
+      provider_config->api_key = gemini_env;
+    else {
+      ProviderConfig config;
+      config.api_key = gemini_env;
+      config.provider = Provider::GEMINI;
+      config.default_model = "gemini-2.5-flash";
+      config.default_max_tokens = constants::DEFAULT_MAX_TOKENS;
+      config.default_temperature = constants::DEFAULT_TEMPERATURE;
+      config_.providers.push_back(config);
+    }
+  }
+
+  if (!config_.providers.empty()) {
+    config_.default_provider = config_.providers[0];
+  }
+}
+
+char * ConfigManager::readUserApiKeyEnvVariable(const std::string &provider) {
+  if (SPI_connect() != SPI_OK_CONNECT) {
+    return nullptr;
+  }
+
+  std::string retrieve_env_command = "Select var_value from client_env_vars where var_name='" + provider + "'";
+
+  int ret = SPI_execute(retrieve_env_command.c_str(), false, 1);
+
+  if (ret < 0) {
+    return nullptr;
+  }
+
+  if (ret != SPI_OK_SELECT && ret != SPI_OK_UTILITY) {
+    return nullptr;
+  }
+
+  if (SPI_processed == 0) {
+    return nullptr;
+  }
+  SPITupleTable* tuptable = SPI_tuptable;
+  if (tuptable == nullptr)
+    return nullptr;
+
+  TupleDesc tupdesc = tuptable->tupdesc;
+  HeapTuple tuple = tuptable->vals[0];
+  return SPI_getvalue(tuple, tupdesc, 1);
 }
 
 const Configuration& ConfigManager::getConfig() {

@@ -179,6 +179,8 @@ class ConfigManager {
    * configuration file settings.
    */
   static void loadEnvConfig();
+
+  static char * readUserApiKeyEnvVariable(const std::string& provider);
 };
 
 // Convenience macros for accessing config
