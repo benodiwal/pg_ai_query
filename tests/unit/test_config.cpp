@@ -353,3 +353,118 @@ TEST_F(ConfigManagerTest, LoadsAllThreeProviders) {
   EXPECT_EQ(anthropic->api_key, "sk-ant-test-key-67890");
   EXPECT_EQ(gemini->api_key, "AIzaSyTest-gemini-key-valid");
 }
+
+// ---------------------------------------------------------------------------
+// GUC variable override tests
+// ---------------------------------------------------------------------------
+
+// A GUC key overrides the api_key that was loaded from the config file.
+TEST_F(ConfigManagerTest, GucOverrideAppliesOpenAIKey) {
+  TempConfigFile cfg("[openai]\napi_key = sk-from-file\n");
+  ASSERT_TRUE(ConfigManager::loadConfig(cfg.path()));
+
+  ConfigManager::applyGucOverrides("sk-from-guc", nullptr, nullptr);
+
+  const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
+  ASSERT_NE(openai, nullptr);
+  EXPECT_EQ(openai->api_key, "sk-from-guc");
+}
+
+// After SET then RESET (nullptr), the config file value must be restored.
+TEST_F(ConfigManagerTest, GucResetRevertsToConfigFileValue) {
+  TempConfigFile cfg("[openai]\napi_key = sk-from-file\n");
+  ASSERT_TRUE(ConfigManager::loadConfig(cfg.path()));
+
+  ConfigManager::applyGucOverrides("sk-from-guc", nullptr, nullptr);
+  ASSERT_EQ(ConfigManager::getProviderConfig(Provider::OPENAI)->api_key,
+            "sk-from-guc");
+
+  // Simulate RESET pg_ai.openai_api_key (PostgreSQL passes nullptr).
+  ConfigManager::applyGucOverrides(nullptr, nullptr, nullptr);
+
+  const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
+  ASSERT_NE(openai, nullptr);
+  EXPECT_EQ(openai->api_key, "sk-from-file");
+}
+
+// An explicitly empty string GUC value is treated identically to nullptr:
+// the config file key wins.
+TEST_F(ConfigManagerTest, GucEmptyStringTreatedAsNoOverride) {
+  TempConfigFile cfg("[openai]\napi_key = sk-from-file\n");
+  ASSERT_TRUE(ConfigManager::loadConfig(cfg.path()));
+
+  ConfigManager::applyGucOverrides("", nullptr, nullptr);
+
+  const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
+  ASSERT_NE(openai, nullptr);
+  EXPECT_EQ(openai->api_key, "sk-from-file");
+}
+
+// When a provider has no entry in the config file, a GUC key for that
+// provider creates a new entry with sensible defaults.
+TEST_F(ConfigManagerTest, GucCreatesProviderEntryWhenNotInFile) {
+  TempConfigFile cfg("[openai]\napi_key = sk-openai-only\n");
+  ASSERT_TRUE(ConfigManager::loadConfig(cfg.path()));
+
+  // Anthropic is absent from the config file; GUC provides its key.
+  ConfigManager::applyGucOverrides(nullptr, "sk-ant-from-guc", nullptr);
+
+  const auto* anthropic = ConfigManager::getProviderConfig(Provider::ANTHROPIC);
+  ASSERT_NE(anthropic, nullptr);
+  EXPECT_EQ(anthropic->api_key, "sk-ant-from-guc");
+  EXPECT_FALSE(anthropic->default_model.empty());
+
+  // Existing file entry must be intact.
+  const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
+  ASSERT_NE(openai, nullptr);
+  EXPECT_EQ(openai->api_key, "sk-openai-only");
+}
+
+// A GUC-created provider entry is removed when the GUC is reset, because
+// applyGucOverrides() rebuilds config_ from base_config_ (which has no entry).
+TEST_F(ConfigManagerTest, GucCreatesProviderThenResetRemovesIt) {
+  TempConfigFile cfg("[openai]\napi_key = sk-openai-only\n");
+  ASSERT_TRUE(ConfigManager::loadConfig(cfg.path()));
+
+  ConfigManager::applyGucOverrides(nullptr, nullptr, "AIza-gemini-guc");
+  ASSERT_NE(ConfigManager::getProviderConfig(Provider::GEMINI), nullptr);
+
+  // RESET Gemini GUC — entry should disappear.
+  ConfigManager::applyGucOverrides(nullptr, nullptr, nullptr);
+  EXPECT_EQ(ConfigManager::getProviderConfig(Provider::GEMINI), nullptr);
+}
+
+// Calling applyGucOverrides() multiple times with different values must
+// always reflect the latest call and never accumulate stale state.
+TEST_F(ConfigManagerTest, RepeatedGucAppliesAreIdempotentOnBase) {
+  TempConfigFile cfg("[openai]\napi_key = sk-file-key\n");
+  ASSERT_TRUE(ConfigManager::loadConfig(cfg.path()));
+
+  ConfigManager::applyGucOverrides("sk-guc-a", nullptr, nullptr);
+  ConfigManager::applyGucOverrides("sk-guc-b", nullptr, nullptr);
+  ConfigManager::applyGucOverrides(nullptr, nullptr, nullptr);  // RESET
+
+  const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
+  ASSERT_NE(openai, nullptr);
+  EXPECT_EQ(openai->api_key, "sk-file-key");
+}
+
+// All three providers can be overridden in a single call.
+TEST_F(ConfigManagerTest, GucOverridesAllThreeProviders) {
+  std::string config_path = getConfigFixture("valid_config.ini");
+  ASSERT_TRUE(ConfigManager::loadConfig(config_path));
+
+  ConfigManager::applyGucOverrides(
+      "sk-openai-guc", "sk-ant-guc", "AIza-gemini-guc");
+
+  const auto* openai    = ConfigManager::getProviderConfig(Provider::OPENAI);
+  const auto* anthropic = ConfigManager::getProviderConfig(Provider::ANTHROPIC);
+  const auto* gemini    = ConfigManager::getProviderConfig(Provider::GEMINI);
+
+  ASSERT_NE(openai, nullptr);
+  ASSERT_NE(anthropic, nullptr);
+  ASSERT_NE(gemini, nullptr);
+  EXPECT_EQ(openai->api_key,    "sk-openai-guc");
+  EXPECT_EQ(anthropic->api_key, "sk-ant-guc");
+  EXPECT_EQ(gemini->api_key,    "AIza-gemini-guc");
+}
