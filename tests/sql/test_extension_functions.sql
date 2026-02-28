@@ -125,9 +125,9 @@ BEGIN
     -- First check if test table exists
     IF EXISTS (
         SELECT 1 FROM information_schema.tables
-        WHERE table_schema = 'pg_ai_test' AND table_name = 'users'
+        WHERE table_schema = 'ai_test' AND table_name = 'users'
     ) THEN
-        SELECT get_table_details('users', 'pg_ai_test') INTO result;
+        SELECT get_table_details('users', 'ai_test') INTO result;
 
         BEGIN
             json_result := result::jsonb;
@@ -142,7 +142,7 @@ BEGIN
             RAISE EXCEPTION 'FAIL: get_table_details returned invalid JSON: %', SQLERRM;
         END;
     ELSE
-        RAISE NOTICE 'SKIP: Test table pg_ai_test.users does not exist';
+        RAISE NOTICE 'SKIP: Test table ai_test.users does not exist';
     END IF;
 END $$;
 
@@ -154,9 +154,9 @@ DECLARE
 BEGIN
     IF EXISTS (
         SELECT 1 FROM information_schema.tables
-        WHERE table_schema = 'pg_ai_test' AND table_name = 'users'
+        WHERE table_schema = 'ai_test' AND table_name = 'users'
     ) THEN
-        SELECT get_table_details('users', 'pg_ai_test')::jsonb INTO result;
+        SELECT get_table_details('users', 'ai_test')::jsonb INTO result;
 
         SELECT jsonb_array_length(result->'columns') INTO column_count;
 
@@ -171,7 +171,7 @@ BEGIN
 
         RAISE NOTICE 'PASS: get_table_details returned % columns with proper structure', column_count;
     ELSE
-        RAISE NOTICE 'SKIP: Test table pg_ai_test.users does not exist';
+        RAISE NOTICE 'SKIP: Test table ai_test.users does not exist';
     END IF;
 END $$;
 
