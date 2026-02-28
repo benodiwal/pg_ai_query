@@ -93,7 +93,8 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
                                             gemini_result.error_message};
       }
 
-      return QueryParser::parseQueryResponse(gemini_result.text);
+      return QueryParser::parseQueryResponse(gemini_result.text,
+                                             cfg.allow_system_tables);
     }
 
     // Use AIClientFactory for OpenAI and Anthropic
@@ -148,7 +149,8 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
                          .error_message = "Empty response from AI service"};
     }
 
-    return QueryParser::parseQueryResponse(result.text);
+    return QueryParser::parseQueryResponse(result.text,
+                                           cfg.allow_system_tables);
   } catch (const std::exception& e) {
     return QueryResult{.generated_query = "",
                        .explanation = "",
@@ -173,16 +175,20 @@ std::string QueryGenerator::buildPrompt(const QueryRequest& request) {
     if (schema.success) {
       schema_context = formatSchemaForAI(schema);
 
-      std::vector<std::string> mentioned_tables;
+      std::vector<std::pair<std::string, std::string>> mentioned_tables;
       for (const auto& table : schema.tables) {
+        std::string qualified = table.schema_name + "." + table.table_name;
         if (request.natural_language.find(table.table_name) !=
-            std::string::npos) {
-          mentioned_tables.push_back(table.table_name);
+                std::string::npos ||
+            request.natural_language.find(qualified) != std::string::npos) {
+          mentioned_tables.push_back({table.schema_name, table.table_name});
         }
       }
 
       for (size_t i = 0; i < mentioned_tables.size() && i < 3; ++i) {
-        auto table_details = getTableDetails(mentioned_tables[i]);
+        const auto& schema_name = mentioned_tables[i].first;
+        const auto& table_name = mentioned_tables[i].second;
+        auto table_details = getTableDetails(table_name, schema_name);
         if (table_details.success) {
           schema_context += "\n" + formatTableDetailsForAI(table_details);
         }
@@ -474,7 +480,13 @@ std::string QueryGenerator::formatSchemaForAI(const DatabaseSchema& schema) {
 
   result << "\nCRITICAL: If user asks for tables not listed above, return an "
             "error with available table names.\n";
-  result << "Do NOT query information_schema or pg_catalog tables.\n";
+  if (config::ConfigManager::getConfig().allow_system_tables) {
+    result
+        << "You may query information_schema or pg_catalog when needed for "
+           "schema introspection (e.g. to show table or column structure).\n";
+  } else {
+    result << "Do NOT query information_schema or pg_catalog tables.\n";
+  }
   return result.str();
 }
 

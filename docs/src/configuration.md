@@ -117,6 +117,7 @@ Controls query generation behavior.
 |--------|------|---------|-------------|
 | `enforce_limit` | boolean | true | Always add LIMIT clause to SELECT queries |
 | `default_limit` | integer | 1000 | Default row limit when none specified |
+| `allow_system_tables` | boolean | false | Allow generated queries to use information_schema / pg_catalog for schema introspection |
 
 ### [response] Section
 
