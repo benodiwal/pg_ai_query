@@ -62,23 +62,8 @@ std::pair<bool, std::string> read_file(const std::string& filepath);
  */
 std::string read_file_or_throw(const std::string& filepath);
 
-/**
- * @brief Format AI API error response into user-friendly message
- *
- * Parses error responses from various AI provider APIs (OpenAI, Anthropic,
- * Gemini) and extracts the most relevant error information for display to
- * users. Handles both JSON error objects and plain text error messages.
- *
- * @param raw_error Raw error response string from the AI API
- * @return Formatted, user-friendly error message
- *
- * @example
- * // Input: {"error": {"message": "Invalid API key", "type":
- * "invalid_request_error"}}
- * // Output: "Invalid API key"
- * std::string formatted = formatAPIError(api_response);
- * std::cerr << "API Error: " << formatted << std::endl;
- */
-std::string formatAPIError(const std::string& raw_error);
+std::string formatAPIError(const std::string& provider,
+                           int status_code,
+                           const std::string& raw_error);
 
 }  // namespace pg_ai::utils
