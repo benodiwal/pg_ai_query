@@ -1,4 +1,5 @@
 #include "../include/query_generator.hpp"
+#include "include/spi_command_executor.hpp"
 
 extern "C" {
 #include <postgres.h>
@@ -220,11 +221,7 @@ DatabaseSchema QueryGenerator::getDatabaseTables() {
   result.success = false;
 
   try {
-    if (SPI_connect() != SPI_OK_CONNECT) {
-      result.error_message = "Failed to connect to SPI";
-      return result;
-    }
-
+    SPICommandExecutor command_executor;
     const char* query = R"(
             SELECT
                 t.table_name,
@@ -239,56 +236,41 @@ DatabaseSchema QueryGenerator::getDatabaseTables() {
             ORDER BY t.table_schema, t.table_name
         )";
 
-    int ret = SPI_execute(query, true, 0);
+    auto executionResult = command_executor.execute(
+        query, true, 0, SPICommandType::OK_SELECT, "DatabaseTables");
 
-    if (ret != SPI_OK_SELECT) {
-      result.error_message = "Failed to execute query";
-      SPI_finish();
+    if (!executionResult.first) {
+      result.error_message = executionResult.second;
       return result;
     }
 
-    SPITupleTable* tuptable = SPI_tuptable;
-    TupleDesc tupdesc = tuptable->tupdesc;
-
     for (uint64 i = 0; i < SPI_processed; i++) {
-      HeapTuple tuple = tuptable->vals[i];
       TableInfo table_info;
 
-      char* table_name = SPI_getvalue(tuple, tupdesc, 1);
-      char* schema_name = SPI_getvalue(tuple, tupdesc, 2);
-      char* table_type = SPI_getvalue(tuple, tupdesc, 3);
-      char* estimated_rows_str = SPI_getvalue(tuple, tupdesc, 4);
+      SPIValue table_name = command_executor.getCell(i, 1);
+      SPIValue schema_name = command_executor.getCell(i, 2);
+      SPIValue table_type = command_executor.getCell(i, 3);
+      SPIValue estimated_rows_str = command_executor.getCell(i, 4);
 
       if (table_name)
-        table_info.table_name = std::string(table_name);
+        table_info.table_name = table_name.toString();
       if (schema_name)
-        table_info.schema_name = std::string(schema_name);
+        table_info.schema_name = schema_name.toString();
       if (table_type)
-        table_info.table_type = std::string(table_type);
+        table_info.table_type = table_type.toString();
       if (estimated_rows_str) {
-        table_info.estimated_rows = atoll(estimated_rows_str);
+        table_info.estimated_rows = atoll(estimated_rows_str.get());
       } else {
         table_info.estimated_rows = 0;
       }
 
       result.tables.push_back(table_info);
-
-      if (table_name)
-        pfree(table_name);
-      if (schema_name)
-        pfree(schema_name);
-      if (table_type)
-        pfree(table_type);
-      if (estimated_rows_str)
-        pfree(estimated_rows_str);
     }
 
     result.success = true;
-    SPI_finish();
 
   } catch (const std::exception& e) {
     result.error_message = std::string("Exception: ") + e.what();
-    SPI_finish();
   }
 
   return result;
@@ -302,10 +284,7 @@ TableDetails QueryGenerator::getTableDetails(const std::string& table_name,
   result.schema_name = schema_name;
 
   try {
-    if (SPI_connect() != SPI_OK_CONNECT) {
-      result.error_message = "Failed to connect to SPI";
-      return result;
-    }
+    SPICommandExecutor command_executor;
 
     std::string column_query = R"(
             SELECT
@@ -353,65 +332,45 @@ TableDetails QueryGenerator::getTableDetails(const std::string& table_name,
             ORDER BY c.ordinal_position
         )";
 
-    int ret = SPI_execute(column_query.c_str(), true, 0);
+    auto execution_result =
+        command_executor.execute(column_query.c_str(), true, 0,
+                                 SPICommandType::OK_SELECT, "column query");
 
-    if (ret != SPI_OK_SELECT) {
-      result.error_message = "Failed to execute column query";
-      SPI_finish();
+    if (!execution_result.first) {
+      result.error_message = execution_result.second;
       return result;
     }
 
-    SPITupleTable* tuptable = SPI_tuptable;
-    TupleDesc tupdesc = tuptable->tupdesc;
-
     for (uint64 i = 0; i < SPI_processed; i++) {
-      HeapTuple tuple = tuptable->vals[i];
       ColumnInfo column_info;
 
-      char* column_name = SPI_getvalue(tuple, tupdesc, 1);
-      char* data_type = SPI_getvalue(tuple, tupdesc, 2);
-      char* is_nullable = SPI_getvalue(tuple, tupdesc, 3);
-      char* column_default = SPI_getvalue(tuple, tupdesc, 4);
-      char* is_primary_key = SPI_getvalue(tuple, tupdesc, 5);
-      char* is_foreign_key = SPI_getvalue(tuple, tupdesc, 6);
-      char* foreign_table = SPI_getvalue(tuple, tupdesc, 7);
-      char* foreign_column = SPI_getvalue(tuple, tupdesc, 8);
+      SPIValue column_name = command_executor.getCell(i, 1);
+      SPIValue data_type = command_executor.getCell(i, 2);
+      SPIValue is_nullable = command_executor.getCell(i, 3);
+      SPIValue column_default = command_executor.getCell(i, 4);
+      SPIValue is_primary_key = command_executor.getCell(i, 5);
+      SPIValue is_foreign_key = command_executor.getCell(i, 6);
+      SPIValue foreign_table = command_executor.getCell(i, 7);
+      SPIValue foreign_column = command_executor.getCell(i, 8);
 
       if (column_name)
-        column_info.column_name = std::string(column_name);
+        column_info.column_name = column_name.toString();
       if (data_type)
-        column_info.data_type = std::string(data_type);
+        column_info.data_type = column_name.toString();
       if (is_nullable)
-        column_info.is_nullable = (std::string(is_nullable) == "YES");
+        column_info.is_nullable = (column_name.toString() == "YES");
       if (column_default)
-        column_info.column_default = std::string(column_default);
+        column_info.column_default = column_name.toString();
       if (is_primary_key)
-        column_info.is_primary_key = (std::string(is_primary_key) == "t");
+        column_info.is_primary_key = (column_name.toString() == "t");
       if (is_foreign_key)
-        column_info.is_foreign_key = (std::string(is_foreign_key) == "t");
+        column_info.is_foreign_key = (column_name.toString() == "t");
       if (foreign_table)
-        column_info.foreign_table = std::string(foreign_table);
+        column_info.foreign_table = column_name.toString();
       if (foreign_column)
-        column_info.foreign_column = std::string(foreign_column);
+        column_info.foreign_column = column_name.toString();
 
       result.columns.push_back(column_info);
-
-      if (column_name)
-        pfree(column_name);
-      if (data_type)
-        pfree(data_type);
-      if (is_nullable)
-        pfree(is_nullable);
-      if (column_default)
-        pfree(column_default);
-      if (is_primary_key)
-        pfree(is_primary_key);
-      if (is_foreign_key)
-        pfree(is_foreign_key);
-      if (foreign_table)
-        pfree(foreign_table);
-      if (foreign_column)
-        pfree(foreign_column);
     }
 
     std::string index_query = R"(
@@ -424,34 +383,27 @@ TableDetails QueryGenerator::getTableDetails(const std::string& table_name,
             ORDER BY indexname
         )";
 
-    ret = SPI_execute(index_query.c_str(), true, 0);
+    execution_result = command_executor.execute(
+        index_query.c_str(), true, 0, SPICommandType::OK_SELECT, "index query");
 
-    if (ret == SPI_OK_SELECT) {
-      tuptable = SPI_tuptable;
-      tupdesc = tuptable->tupdesc;
+    if (!execution_result.first) {
+      result.error_message = execution_result.second;
+      return result;
+    }
 
-      for (uint64 i = 0; i < SPI_processed; i++) {
-        HeapTuple tuple = tuptable->vals[i];
-        char* indexname = SPI_getvalue(tuple, tupdesc, 1);
-        char* indexdef = SPI_getvalue(tuple, tupdesc, 2);
+    for (uint64 i = 0; i < SPI_processed; i++) {
+      SPIValue indexname = command_executor.getCell(i, 1);
+      SPIValue indexdef = command_executor.getCell(i, 2);
 
-        if (indexdef) {
-          result.indexes.push_back(std::string(indexdef));
-        }
-
-        if (indexname)
-          pfree(indexname);
-        if (indexdef)
-          pfree(indexdef);
+      if (indexdef) {
+        result.indexes.push_back(indexdef.toString());
       }
     }
 
     result.success = true;
-    SPI_finish();
 
   } catch (const std::exception& e) {
     result.error_message = std::string("Exception: ") + e.what();
-    SPI_finish();
   }
 
   return result;
@@ -522,45 +474,21 @@ ExplainResult QueryGenerator::explainQuery(const ExplainRequest& request) {
     }
 
     result.query = request.query_text;
-
-    SPIConnection spi_conn;
-    if (!spi_conn) {
-      result.error_message = spi_conn.getErrorMessage();
-      return result;
-    }
+    SPICommandExecutor command_executor;
 
     std::string explain_query =
         "EXPLAIN (ANALYZE, VERBOSE, COSTS, SETTINGS, BUFFERS, FORMAT JSON) " +
         request.query_text;
 
-    int ret = SPI_execute(explain_query.c_str(), false, 0);
+    auto executionResult = command_executor.execute(
+        explain_query.c_str(), false, 0, SPICommandType::OK_UTILITY, "EXPLAIN");
 
-    if (ret < 0) {
-      result.error_message = "Failed to execute EXPLAIN query: " +
-                             std::string(SPI_result_code_string(ret));
+    if (!executionResult.first) {
+      result.error_message = executionResult.second;
       return result;
     }
 
-    if (ret != SPI_OK_SELECT && ret != SPI_OK_UTILITY) {
-      result.error_message =
-          "Failed to execute EXPLAIN query. SPI result code: " +
-          std::to_string(ret) + " (" +
-          std::string(SPI_result_code_string(ret)) + "). " +
-          "This may indicate the query failed or EXPLAIN ANALYZE is not "
-          "supported in this context.";
-      return result;
-    }
-
-    if (SPI_processed == 0) {
-      result.error_message = "No output from EXPLAIN query";
-      return result;
-    }
-
-    SPITupleTable* tuptable = SPI_tuptable;
-    TupleDesc tupdesc = tuptable->tupdesc;
-    HeapTuple tuple = tuptable->vals[0];
-
-    SPIValue explain_output(SPI_getvalue(tuple, tupdesc, 1));
+    SPIValue explain_output = command_executor.getCell(0, 1);
     if (!explain_output) {
       result.error_message = "Failed to get EXPLAIN output";
       return result;
