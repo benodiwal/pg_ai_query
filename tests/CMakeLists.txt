@@ -12,6 +12,7 @@ set(CORE_SOURCES
     ${CMAKE_SOURCE_DIR}/src/core/query_parser.cpp
     ${CMAKE_SOURCE_DIR}/src/utils.cpp
     ${CMAKE_SOURCE_DIR}/src/prompts.cpp
+    ${CMAKE_SOURCE_DIR}/src/providers/gemini/client.cpp
 )
 
 # Create a testable core library (without PostgreSQL SPI dependencies)
@@ -26,6 +27,7 @@ target_link_libraries(pg_ai_query_core PUBLIC
     ai-sdk-cpp-core
     ai-sdk-cpp-openai
     ai-sdk-cpp-anthropic
+    CURL::libcurl
     OpenSSL::SSL
     OpenSSL::Crypto
 )
@@ -40,6 +42,7 @@ add_executable(pg_ai_query_tests
     unit/test_response_formatter.cpp
     unit/test_utils.cpp
     unit/test_query_parser.cpp
+    unit/test_gemini_client.cpp
 )
 
 target_include_directories(pg_ai_query_tests PRIVATE
