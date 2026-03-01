@@ -14,8 +14,13 @@ namespace pg_ai {
  * natural language using AI providers.
  */
 struct QueryRequest {
+  /** Natural language description of the desired query, e.g. "show all users older than 25" */
   std::string natural_language;
+
+  /** API key override; if empty, uses the key from the config file for the selected provider */
   std::string api_key;
+
+  /** Provider name override: "openai", "anthropic", or "gemini". Empty uses default_provider. */
   std::string provider;
 };
 
@@ -26,12 +31,25 @@ struct QueryRequest {
  * explanations, warnings, and success status.
  */
 struct QueryResult {
+  /** The generated SQL query string */
   std::string generated_query;
+
+  /** AI-generated explanation of what the query does (when show_explanation is true) */
   std::string explanation;
+
+  /** Potential issues or caveats about the generated query */
   std::vector<std::string> warnings;
+
+  /** Whether a LIMIT clause was automatically appended (when enforce_limit is true) */
   bool row_limit_applied;
+
+  /** Recommended chart/visualization type for the results, e.g. "bar", "table" */
   std::string suggested_visualization;
+
+  /** Whether query generation succeeded */
   bool success;
+
+  /** Error description when success is false */
   std::string error_message;
 };
 
@@ -97,8 +115,13 @@ struct DatabaseSchema {
  * Contains the SQL query to analyze and optional API configuration.
  */
 struct ExplainRequest {
+  /** The SQL query to analyze with EXPLAIN ANALYZE */
   std::string query_text;
+
+  /** API key override; if empty, uses the key from the config file for the selected provider */
   std::string api_key;
+
+  /** Provider name override: "openai", "anthropic", or "gemini". Empty uses default_provider. */
   std::string provider;
 };
 
@@ -109,10 +132,19 @@ struct ExplainRequest {
  * performance analysis with optimization suggestions.
  */
 struct ExplainResult {
+  /** The original SQL query that was analyzed */
   std::string query;
+
+  /** Raw PostgreSQL EXPLAIN (ANALYZE, VERBOSE, COSTS, BUFFERS, FORMAT JSON) output */
   std::string explain_output;
+
+  /** AI-generated performance analysis with optimization suggestions */
   std::string ai_explanation;
+
+  /** Whether the analysis completed successfully */
   bool success;
+
+  /** Error description when success is false */
   std::string error_message;
 };
 
