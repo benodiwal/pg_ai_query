@@ -32,6 +32,11 @@ constexpr const char* SECTION_GEMINI = "gemini";
 // Default model names
 constexpr const char* DEFAULT_OPENAI_MODEL = "gpt-4o";
 constexpr const char* DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5-20250929";
+constexpr const char* DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+
+// Maximum config line length to prevent memory exhaustion attacks
+// 16KB should accommodate long API keys and base64-encoded values
+constexpr int MAX_CONFIG_LINE_LENGTH = 16384;
 
 // Default token limits
 constexpr int DEFAULT_OPENAI_MAX_TOKENS = 16384;
