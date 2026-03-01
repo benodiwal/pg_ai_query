@@ -39,4 +39,9 @@ constexpr int DEFAULT_ANTHROPIC_MAX_TOKENS = 8192;
 constexpr int DEFAULT_MAX_TOKENS = 4096;
 constexpr double DEFAULT_TEMPERATURE = 0.7;
 constexpr int DEFAULT_MAX_QUERY_LENGTH = 4000;
+
+// Env Variables Names
+constexpr const char* OPENAI_API_KEY_VARIABLE_NAME = "OPENAI_API_KEY";
+constexpr const char* ANTHROPIC_API_KEY_VARIABLE_NAME = "ANTHROPIC_API_KEY";
+constexpr const char* GEMINI_API_KEY_VARIABLE_NAME = "GEMINI_API_KEY";
 }  // namespace pg_ai::constants
