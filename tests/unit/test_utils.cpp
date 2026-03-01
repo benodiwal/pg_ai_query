@@ -104,8 +104,8 @@ TEST_F(UtilsTest, FormatAPIErrorValidJSON) {
   EXPECT_THAT(formatted, testing::HasSubstr("invalid-model-name"));
 }
 
-// Test formatAPIError with generic error message
-TEST_F(UtilsTest, FormatAPIErrorGenericMessage) {
+// Test formatAPIError with rate limit error
+TEST_F(UtilsTest, FormatAPIErrorRateLimit) {
   std::string raw_error = R"({
         "error": {
             "type": "rate_limit_error",
@@ -115,7 +115,8 @@ TEST_F(UtilsTest, FormatAPIErrorGenericMessage) {
 
   std::string formatted = formatAPIError(raw_error);
 
-  EXPECT_EQ(formatted, "Rate limit exceeded. Please try again later.");
+  EXPECT_THAT(formatted, testing::HasSubstr("Rate limit exceeded"));
+  EXPECT_THAT(formatted, testing::HasSubstr("wait"));
 }
 
 // Test formatAPIError with not_found_error but no model info
@@ -141,14 +142,91 @@ TEST_F(UtilsTest, FormatAPIErrorInvalidJSON) {
   EXPECT_EQ(formatted, raw_error);
 }
 
-// Test formatAPIError with JSON embedded in text
-TEST_F(UtilsTest, FormatAPIErrorJSONInText) {
-  std::string raw_error =
-      R"(API Error: {"error": {"message": "Authentication failed"}})";
+// Test formatAPIError with authentication error
+TEST_F(UtilsTest, FormatAPIErrorAuthentication) {
+  std::string raw_error = R"({
+        "error": {
+            "type": "authentication_error",
+            "message": "Incorrect API key provided"
+        }
+    })";
 
   std::string formatted = formatAPIError(raw_error);
 
-  EXPECT_EQ(formatted, "Authentication failed");
+  EXPECT_THAT(formatted, testing::HasSubstr("Authentication failed"));
+  EXPECT_THAT(formatted, testing::HasSubstr("API key"));
+}
+
+// Test formatAPIError with quota exceeded
+TEST_F(UtilsTest, FormatAPIErrorQuotaExceeded) {
+  std::string raw_error = R"({
+        "error": {
+            "type": "insufficient_quota",
+            "message": "You exceeded your current quota"
+        }
+    })";
+
+  std::string formatted = formatAPIError(raw_error);
+
+  EXPECT_THAT(formatted, testing::HasSubstr("quota exceeded"));
+}
+
+// Test formatAPIError with context length exceeded
+TEST_F(UtilsTest, FormatAPIErrorContextLength) {
+  std::string raw_error = R"({
+        "error": {
+            "type": "invalid_request_error",
+            "message": "This model's maximum context length is 4096 tokens"
+        }
+    })";
+
+  std::string formatted = formatAPIError(raw_error);
+
+  EXPECT_THAT(formatted, testing::HasSubstr("too large"));
+  EXPECT_THAT(formatted, testing::HasSubstr("context"));
+}
+
+// Test formatAPIError with server error
+TEST_F(UtilsTest, FormatAPIErrorServerError) {
+  std::string raw_error = R"({
+        "error": {
+            "type": "server_error",
+            "message": "Internal server error"
+        }
+    })";
+
+  std::string formatted = formatAPIError(raw_error);
+
+  EXPECT_THAT(formatted, testing::HasSubstr("temporarily unavailable"));
+}
+
+// Test formatAPIError with connection refused (non-JSON)
+TEST_F(UtilsTest, FormatAPIErrorConnectionRefused) {
+  std::string raw_error = "Connection refused to api.openai.com:443";
+
+  std::string formatted = formatAPIError(raw_error);
+
+  EXPECT_THAT(formatted, testing::HasSubstr("Could not connect"));
+}
+
+// Test formatAPIError with timeout (non-JSON)
+TEST_F(UtilsTest, FormatAPIErrorTimeout) {
+  std::string raw_error = "Request timed out after 30000ms";
+
+  std::string formatted = formatAPIError(raw_error);
+
+  EXPECT_THAT(formatted, testing::HasSubstr("timed out"));
+  EXPECT_THAT(formatted, testing::HasSubstr("request_timeout_ms"));
+}
+
+// Test formatAPIError with JSON embedded in text
+TEST_F(UtilsTest, FormatAPIErrorJSONInText) {
+  std::string raw_error =
+      R"(API Error: {"error": {"type": "authentication_error", "message": "Invalid API key"}})";
+
+  std::string formatted = formatAPIError(raw_error);
+
+  EXPECT_THAT(formatted, testing::HasSubstr("Authentication failed"));
 }
 
 // Test formatAPIError with empty error object
