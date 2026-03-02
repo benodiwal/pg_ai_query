@@ -230,7 +230,7 @@ DatabaseSchema QueryGenerator::getDatabaseTables() {
                 t.table_name,
                 t.table_schema,
                 t.table_type,
-                COALESCE(pg_stat.n_tup_ins + pg_stat.n_tup_upd + pg_stat.n_tup_del, 0) as estimated_rows
+                COALESCE(pg_stat.n_live_tup, 0) as estimated_rows
             FROM information_schema.tables t
             LEFT JOIN pg_stat_user_tables pg_stat ON t.table_name = pg_stat.relname
                 AND t.table_schema = pg_stat.schemaname

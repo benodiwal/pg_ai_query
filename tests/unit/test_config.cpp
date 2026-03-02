@@ -228,8 +228,7 @@ api_key = sk-ant-test
 
   const auto* anthropic = ConfigManager::getProviderConfig(Provider::ANTHROPIC);
   ASSERT_NE(anthropic, nullptr);
-  EXPECT_EQ(anthropic->default_model,
-            DEFAULT_ANTHROPIC_MODEL);
+  EXPECT_EQ(anthropic->default_model, DEFAULT_ANTHROPIC_MODEL);
 }
 
 // Test numeric value parsing
@@ -307,8 +306,7 @@ TEST(ConfigurationTest, DefaultConstructorSetsDefaults) {
   EXPECT_FALSE(config.use_formatted_response);
 
   EXPECT_EQ(config.default_provider.provider, Provider::OPENAI);
-  EXPECT_EQ(config.default_provider.default_model,
-            DEFAULT_OPENAI_MODEL);
+  EXPECT_EQ(config.default_provider.default_model, DEFAULT_OPENAI_MODEL);
 }
 
 // Test ProviderConfig default constructor

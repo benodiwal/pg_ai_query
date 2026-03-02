@@ -72,7 +72,7 @@ TEST_F(ResponseFormatterTest, PlainTextWithExplanation) {
 // Test plain text wrapping for long explanation
 TEST_F(ResponseFormatterTest, PlainTextLongExplanationWrapping) {
   auto result = createBasicResult();
-  result.explanation = 
+  result.explanation =
       "This is a very long explanation that definitely exceeds seventy "
       "characters in length and should be wrapped across multiple lines to "
       "ensure proper formatting and readability in the output";
@@ -81,15 +81,15 @@ TEST_F(ResponseFormatterTest, PlainTextLongExplanationWrapping) {
   std::string output = ResponseFormatter::formatResponse(result, config);
 
   EXPECT_THAT(output, testing::HasSubstr("-- Explanation:"));
-  
+
   EXPECT_THAT(output, testing::HasSubstr("This is a very long explanation"));
   EXPECT_THAT(output, testing::HasSubstr("ensure proper formatting"));
-  
+
   std::istringstream stream(output);
   std::string line;
   int explanation_lines = 0;
   bool in_explanation = false;
-  
+
   while (std::getline(stream, line)) {
     if (line.find("-- Explanation:") != std::string::npos) {
       in_explanation = true;
@@ -100,11 +100,11 @@ TEST_F(ResponseFormatterTest, PlainTextLongExplanationWrapping) {
         explanation_lines++;
         EXPECT_LE(line.length(), 70);
       } else {
-        break;  
+        break;
       }
     }
   }
-  
+
   EXPECT_GT(explanation_lines, 1);
 }
 
@@ -137,25 +137,24 @@ TEST_F(ResponseFormatterTest, PlainTextLongWarningWrapping) {
   result.warnings = {
       "This warning message is intentionally very long to test the text "
       "wrapping functionality and ensure that it properly breaks across "
-      "multiple lines without exceeding the maximum width limit"
-  };
+      "multiple lines without exceeding the maximum width limit"};
   auto config = createConfig(false, false, true, false);
 
   std::string output = ResponseFormatter::formatResponse(result, config);
 
   EXPECT_THAT(output, testing::HasSubstr("-- Warning:"));
-  
+
   std::istringstream stream(output);
   std::string line;
   int warning_lines = 0;
-  
+
   while (std::getline(stream, line)) {
     if (line.find("--   ") == 0) {
       warning_lines++;
       EXPECT_LE(line.length(), 70);
     }
   }
-  
+
   EXPECT_GT(warning_lines, 1);
 }
 
