@@ -116,4 +116,68 @@ std::string formatAPIError(const std::string& raw_error) {
   return raw_error;
 }
 
+bool is_select_only_query(const std::string& sql) {
+  std::string s = sql;
+  size_t i = 0;
+  const size_t n = s.size();
+
+  auto skip_whitespace = [&]() {
+    while (i < n && std::isspace(static_cast<unsigned char>(s[i]))) {
+      ++i;
+    }
+  };
+  auto skip_single_line_comment = [&]() {
+    if (i + 1 < n && s[i] == '-' && s[i + 1] == '-') {
+      i += 2;
+      while (i < n && s[i] != '\n') {
+        ++i;
+      }
+    }
+  };
+  auto skip_block_comment = [&]() {
+    if (i + 1 < n && s[i] == '/' && s[i + 1] == '*') {
+      i += 2;
+      while (i + 1 < n && !(s[i] == '*' && s[i + 1] == '/')) {
+        ++i;
+      }
+      if (i + 1 < n) {
+        i += 2;
+      }
+    }
+  };
+
+  skip_whitespace();
+  while (i < n) {
+    if (i + 1 < n && s[i] == '-' && s[i + 1] == '-') {
+      skip_single_line_comment();
+      skip_whitespace();
+      continue;
+    }
+    if (i + 1 < n && s[i] == '/' && s[i + 1] == '*') {
+      skip_block_comment();
+      skip_whitespace();
+      continue;
+    }
+    break;
+  }
+
+  if (i >= n) {
+    return false;
+  }
+
+  size_t start = i;
+  while (i < n &&
+         (std::isalnum(static_cast<unsigned char>(s[i])) || s[i] == '_')) {
+    ++i;
+  }
+  std::string first_token = s.substr(start, i - start);
+  if (first_token.empty()) {
+    return false;
+  }
+  for (char& c : first_token) {
+    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  }
+  return first_token == "select";
+}
+
 }  // namespace pg_ai::utils

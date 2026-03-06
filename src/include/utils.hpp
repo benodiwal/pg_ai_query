@@ -81,4 +81,16 @@ std::string read_file_or_throw(const std::string& filepath);
  */
 std::string formatAPIError(const std::string& raw_error);
 
+/**
+ * @brief Check if SQL is a read-only SELECT query for safe EXPLAIN
+ *
+ * Returns true only when the first keyword (after whitespace and comments)
+ * is SELECT. Rejects INSERT, UPDATE, DELETE, DROP, and other mutating or
+ * DDL statements to prevent execution via EXPLAIN ANALYZE.
+ *
+ * @param sql The SQL string to validate
+ * @return true if the query appears to be a SELECT-only statement
+ */
+bool is_select_only_query(const std::string& sql);
+
 }  // namespace pg_ai::utils
