@@ -115,7 +115,8 @@ TEST_F(UtilsTest, FormatAPIErrorGenericMessage) {
 
   std::string formatted = formatAPIError("TestProvider", 429, raw_error);
 
-  EXPECT_EQ(formatted, "Rate limit exceeded. Please wait before making more requests.");
+  EXPECT_EQ(formatted,
+            "Rate limit exceeded. Please wait before making more requests.");
 }
 
 // Test formatAPIError with not_found_error but no model info
@@ -148,7 +149,9 @@ TEST_F(UtilsTest, FormatAPIErrorJSONInText) {
 
   std::string formatted = formatAPIError("TestProvider", 401, raw_error);
 
-  EXPECT_EQ(formatted, "Invalid API key for TestProvider. Please check your ~/.pg_ai.config file.");
+  EXPECT_EQ(formatted,
+            "Invalid API key for TestProvider. Please check your "
+            "~/.pg_ai.config file.");
 }
 
 // Test formatAPIError with empty error object
@@ -168,6 +171,53 @@ TEST_F(UtilsTest, FormatAPIErrorMissingErrorKey) {
   std::string formatted = formatAPIError("TestProvider", 500, raw_error);
 
   EXPECT_EQ(formatted, raw_error);
+}
+
+// Quota error via type
+TEST_F(UtilsTest, FormatAPIErrorQuotaByType) {
+  std::string raw =
+      R"({"error":{"type":"insufficient_quota","message":"quota exceeded"}})";
+  EXPECT_THAT(formatAPIError("X", 0, raw),
+              testing::HasSubstr("API quota exceeded"));
+}
+
+// Timeout via status code
+TEST_F(UtilsTest, FormatAPIErrorTimeout) {
+  std::string raw =
+      R"({"error":{"type":"timeout_error","message":"timed out"}})";
+  EXPECT_THAT(formatAPIError("X", 408, raw),
+              testing::HasSubstr("Request timed out"));
+}
+
+// Service unavailability (raw 503, no JSON body)
+TEST_F(UtilsTest, FormatAPIErrorServiceUnavailable) {
+  EXPECT_THAT(formatAPIError("TestProvider", 503, "Service Unavailable"),
+              testing::HasSubstr("temporarily unavailable"));
+}
+
+// Generic 4xx fallback with message
+TEST_F(UtilsTest, FormatAPIErrorGeneric4xx) {
+  std::string raw =
+      R"({"error":{"type":"invalid_request","message":"Unprocessable entity"}})";
+  std::string result = formatAPIError("X", 422, raw);
+  EXPECT_THAT(result, testing::HasSubstr("422"));
+  EXPECT_THAT(result, testing::HasSubstr("Unprocessable entity"));
+}
+
+// Case-insensitive rate limit match
+TEST_F(UtilsTest, FormatAPIErrorRateLimitCaseInsensitive) {
+  std::string raw =
+      R"({"error":{"type":"other","message":"RATE LIMIT EXCEEDED"}})";
+  EXPECT_EQ(formatAPIError("X", 0, raw),
+            "Rate limit exceeded. Please wait before making more requests.");
+}
+
+// Auth via "unauthorized" in message
+TEST_F(UtilsTest, FormatAPIErrorUnauthorizedInMessage) {
+  std::string raw =
+      R"({"error":{"type":"other","message":"unauthorized access"}})";
+  EXPECT_THAT(formatAPIError("MyProvider", 0, raw),
+              testing::HasSubstr("Invalid API key for MyProvider"));
 }
 
 // Test reading actual fixture files

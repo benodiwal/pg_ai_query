@@ -65,6 +65,10 @@ std::string formatAPIError(const std::string& provider,
     error_to_parse = raw_error.substr(json_start);
   }
 
+  if (status_code == 503 || status_code == 502 || status_code == 504) {
+    return provider + " service is temporarily unavailable. Try again later.";
+  }
+
   try {
     auto error_json = nlohmann::json::parse(error_to_parse);
 
@@ -90,7 +94,7 @@ std::string formatAPIError(const std::string& provider,
 
       // rate limit errors(429)
       if (status_code == 429 || error_type == "rate_limit_error" ||
-          error_lower.find("rate") != std::string::npos) {
+          error_lower.find("rate limit") != std::string::npos) {
         return "Rate limit exceeded. Please wait before making more requests.";
       }
 
@@ -104,7 +108,7 @@ std::string formatAPIError(const std::string& provider,
       }
 
       // quota errors(402)
-      if (status_code == 402 || error_type == "payment_required" ||
+      if (error_type == "insufficient_quota" ||
           error_lower.find("quota") != std::string::npos ||
           error_lower.find("insufficient_quota") != std::string::npos) {
         return "API quota exceeded. Check your " + provider + " account usage.";
@@ -118,27 +122,17 @@ std::string formatAPIError(const std::string& provider,
                "config.";
       }
 
-      if (status_code == 503 || status_code == 502 || status_code == 504) {
-        return provider +
-               " service is temporarily unavailable. Try again later.";
-      }
-
       if (error_type == "not_found_error") {
-        if (error_obj.contains("message")) {
-          std::string msg = error_obj["message"];
-
-          size_t model_pos = msg.find("model:");
-          if (model_pos != std::string::npos) {
-            std::string model_name = msg.substr(model_pos + 7);
-            model_name.erase(0, model_name.find_first_not_of(" \t"));
-            model_name.erase(model_name.find_last_not_of(" \t") + 1);
-
-            return "Invalid model '" + model_name +
-                   "'. Please check your configuration and use a valid model "
-                   "name. "
-                   "Common models: 'claude-sonnet-4-5-20250929' (Anthropic), "
-                   "'gpt-4o' (OpenAI).";
-          }
+        size_t model_pos = error_message.find("model:");
+        if (model_pos != std::string::npos) {
+          std::string model_name = error_message.substr(model_pos + 7);
+          model_name.erase(0, model_name.find_first_not_of(" \t"));
+          model_name.erase(model_name.find_last_not_of(" \t") + 1);
+          return "Invalid model '" + model_name +  // ← return inside the if
+                 "'. Please check your configuration and use a valid model "
+                 "name. "
+                 "Common models: 'claude-sonnet-4-5-20250929' (Anthropic), "
+                 "'gpt-4o' (OpenAI).";
         }
         return "Model not found. Please check your model configuration and "
                "ensure you're using a valid model name.";
