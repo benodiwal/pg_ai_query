@@ -125,7 +125,9 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
     }
 
     auto result = client_result.client.generate_text(options);
-
+    std::string provider =
+        config::ConfigManager::providerToString(selection.provider);
+    int status_code = 0;  // gets the HTTP status code from the result object
     if (!result) {
       return QueryResult{
           .generated_query = "",
@@ -135,7 +137,8 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
           .suggested_visualization = "",
           .success = false,
           .error_message =
-              "AI API error: " + utils::formatAPIError(result.error_message())};
+              "AI API error: " + utils::formatAPIError(provider, status_code,
+                                                       result.error_message())};
     }
 
     if (result.text.empty()) {
@@ -636,12 +639,15 @@ ExplainResult QueryGenerator::explainQuery(const ExplainRequest& request) {
       options.max_tokens = selection.config->default_max_tokens;
       options.temperature = selection.config->default_temperature;
     }
-
+    std::string provider =
+        config::ConfigManager::providerToString(selection.provider);
+    int status_code = 0;
     auto ai_result = client_result.client.generate_text(options);
 
     if (!ai_result) {
       result.error_message =
-          "AI API error: " + utils::formatAPIError(ai_result.error_message());
+          "AI API error: " + utils::formatAPIError(provider, status_code,
+                                                   ai_result.error_message());
       return result;
     }
 

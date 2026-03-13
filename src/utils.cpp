@@ -70,50 +70,56 @@ std::optional<std::string> validate_natural_language_query(
 // CR-someday @benodiwal: This is the basic version of API Error formatting,
 // there is a lot of place for improvement. Currently it focuses on wrong model
 // names in conf relate errors.
-std::string formatAPIError(const std::string& raw_error) {
-  std::string error_to_parse = raw_error;
 
-  size_t json_start = raw_error.find('{');
-  if (json_start != std::string::npos) {
-    error_to_parse = raw_error.substr(json_start);
-  }
-
+std::string formatAPIError(const std::string& provider,
+                           int status_code,
+                           const std::string& raw_error) {
+  // 1. High-Priority HTTP Status Mapping
   try {
-    auto error_json = nlohmann::json::parse(error_to_parse);
+    size_t start = raw_error.find('{');
+    if (start != std::string::npos) {
+      auto j = nlohmann::json::parse(raw_error.substr(start));
+      if (j.contains("error") && j["error"].contains("message")) {
+        std::string msg = j["error"]["message"];
 
-    if (error_json.contains("error")) {
-      auto error_obj = error_json["error"];
-
-      if (error_obj.contains("type") &&
-          error_obj["type"] == "not_found_error") {
-        if (error_obj.contains("message")) {
-          std::string msg = error_obj["message"];
-
-          size_t model_pos = msg.find("model:");
-          if (model_pos != std::string::npos) {
-            std::string model_name = msg.substr(model_pos + 7);
-            model_name.erase(0, model_name.find_first_not_of(" \t"));
-            model_name.erase(model_name.find_last_not_of(" \t") + 1);
-
-            return "Invalid model '" + model_name +
-                   "'. Please check your configuration and use a valid model "
-                   "name. "
-                   "Common models: 'claude-sonnet-4-5-20250929' (Anthropic), "
-                   "'gpt-4o' (OpenAI).";
+        if (raw_error.find("not_found_error") != std::string::npos) {
+          // If the message specifically mentions "model:", use "Invalid model"
+          if (msg.find("model:") != std::string::npos) {
+            return "Invalid model: " + msg;
           }
+          // Fallback for other not_found_errors
+          return "Model not found: " + msg;
         }
-        return "Model not found. Please check your model configuration and "
-               "ensure you're using a valid model name.";
-      }
-
-      if (error_obj.contains("message")) {
-        return error_obj["message"];
+        return msg;
       }
     }
-  } catch (const nlohmann::json::exception&) {
+  } catch (...) {
+    // Ignore parsing errors and move to keyword mapping
   }
-
-  return raw_error;
+  if (status_code == 429 || raw_error.find("rate_limit") != std::string::npos) {
+    return "Rate limit exceeded. Please wait before making more requests.";
+  } else if (status_code == 401 ||
+             raw_error.find("invalid_api_key") != std::string::npos) {
+    return "Invalid API key for " + provider +
+           ". "
+           "Please check your ~/.pg_ai.config file.";
+  } else if (status_code == 402 ||
+             raw_error.find("quota") != std::string::npos) {
+    return "API quota exceeded. Check your " + provider + " account usage.";
+  } else if (status_code == 408 || status_code == 504 ||
+             raw_error.find("timeout") != std::string::npos) {
+    return "Request timed out. Try increasing request_timeout_ms in config.";
+  } else if (status_code == 503 || status_code == 502) {
+    return provider + " service is temporarily unavailable. Try again later.";
+  } else if (status_code >= 400 && status_code < 500) {
+    return "Request error (" + std::to_string(status_code) + "): " + raw_error;
+  } else if (status_code >= 500) {
+    return provider +
+           " service is temporarily unavailable. Please try again later.";
+  } else if (provider == "Unknown" || provider.empty()) {
+    return raw_error;
+  } else {
+    return provider + raw_error;
+  }
 }
-
 }  // namespace pg_ai::utils
