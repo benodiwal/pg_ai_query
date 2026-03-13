@@ -79,6 +79,7 @@ std::string read_file_or_throw(const std::string& filepath);
  * std::string formatted = formatAPIError(api_response);
  * std::cerr << "API Error: " << formatted << std::endl;
  */
-std::string formatAPIError(const std::string& raw_error);
-
+std::string formatAPIError(const std::string& provider,
+                           int status_code,
+                           const std::string& raw_error);
 }  // namespace pg_ai::utils
