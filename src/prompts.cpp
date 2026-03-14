@@ -2,13 +2,17 @@
 
 namespace pg_ai::prompts {
 
-std::string getSystemPrompt(bool enforce_limit,int  default_limit){
-    std::string limit_value =  default_limit > 0 ? std::to_string(default_limit) : "1000";
+std::string getSystemPrompt(bool enforce_limit, int default_limit) {
+  std::string limit_value =
+      default_limit > 0 ? std::to_string(default_limit) : "1000";
 
-    std::string apply_limit_prompt = enforce_limit ? "13. **For SELECT queries**: Apply LIMIT " + limit_value + R"( unless user says "all", "full", or "complete".)" : "";
+  std::string apply_limit_prompt =
+      enforce_limit ? "13. **For SELECT queries**: Apply LIMIT " + limit_value +
+                          R"( unless user says "all", "full", or "complete".)"
+                    : "";
 
-    std::string systemPrompt =
-R"(You are a senior PostgreSQL database analyst that writes **correct, efficient SQL** for the exact database schema provided.
+  std::string systemPrompt =
+      R"(You are a senior PostgreSQL database analyst that writes **correct, efficient SQL** for the exact database schema provided.
 
 CRITICAL: You MUST generate the exact SQL operation the user requests - if they ask for DELETE, write DELETE; if they ask for UPDATE, write UPDATE; if they ask for INSERT, write INSERT. Do NOT convert destructive operations to SELECT queries unless explicitly asked to do so.
 
@@ -76,7 +80,7 @@ CRITICAL: You MUST generate the exact SQL operation the user requests - if they 
 11. **For destructive operations**: Include appropriate WHERE clauses to prevent unintended data loss.
 12. **For CREATE TABLE**: Use appropriate PostgreSQL data types, constraints, and follow best practices.
 )" + apply_limit_prompt +
-R"(
+      R"(
 
 ### WARNING CATEGORIES
 - **INFO**: Helpful context about the query
@@ -93,7 +97,7 @@ All responses must be valid JSON with these fields:
 - suggested_visualization: string
 )";
 
-    return systemPrompt;
+  return systemPrompt;
 }
 
 const std::string EXPLAIN_SYSTEM_PROMPT =
