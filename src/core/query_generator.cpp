@@ -33,7 +33,6 @@ namespace pg_ai {
 QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
   try {
     const auto& cfg = config::ConfigManager::getConfig();
-
     auto validation_error = utils::validate_natural_language_query(
         request.natural_language, cfg.max_query_length);
     if (validation_error) {
@@ -68,7 +67,8 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
               : "gemini-2.5-flash";
       logger::Logger::info("Using Gemini model: " + model_name);
 
-      std::string system_prompt = prompts::SYSTEM_PROMPT;
+      const auto& cfg = config::ConfigManager::getConfig();
+      std::string system_prompt = prompts::getSystemPrompt(cfg.enforce_limit,cfg.default_limit);
       std::string prompt = buildPrompt(request);
 
       gemini::GeminiClient gemini_client(selection.api_key);
@@ -112,7 +112,7 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
 
     std::string prompt = buildPrompt(request);
     ai::GenerateOptions options(client_result.model_name,
-                                prompts::SYSTEM_PROMPT, prompt);
+                                prompts::getSystemPrompt(cfg.enforce_limit,cfg.default_limit), prompt);
 
     if (selection.config) {
       options.max_tokens = selection.config->default_max_tokens;
