@@ -48,13 +48,29 @@ std::string read_file_or_throw(const std::string& filepath) {
   return std::move(content);
 }
 
-// CR-someday @benodiwal: This is the basic version of API Error formatting,
-// there is a lot of place for improvement. Currently it focuses on wrong model
-// names in conf relate errors.
+std::optional<std::string> validate_natural_language_query(
+    const std::string& query,
+    int max_query_length) {
+  // Validate content first: ensure query exists before checking properties.
+  if (query.empty() ||
+      std::all_of(query.begin(), query.end(),
+                  [](unsigned char c) { return std::isspace(c); })) {
+    return "Query cannot be empty.";
+  }
+  if (max_query_length < 0) {
+    return "Invalid maximum query length.";
+  }
+  if (query.length() > static_cast<size_t>(max_query_length)) {
+    return "Query too long. Maximum " + std::to_string(max_query_length) +
+           " characters allowed. Your query: " +
+           std::to_string(query.length()) + " characters.";
+  }
+  return std::nullopt;
+}
 
-// API error formatting,
-//  checks for rate limit, authentication, quota, timeout, service
-//  unavailability, model not found errors.
+// Formats raw AI API error responses into user-friendly messages.
+// Handles rate limits, authentication, quota, timeout, service
+// unavailability, and model not found errors.
 std::string formatAPIError(const std::string& provider,
                            int status_code,
                            const std::string& raw_error) {
@@ -109,8 +125,7 @@ std::string formatAPIError(const std::string& provider,
 
       // quota errors(402)
       if (error_type == "insufficient_quota" ||
-          error_lower.find("quota") != std::string::npos ||
-          error_lower.find("insufficient_quota") != std::string::npos) {
+          error_lower.find("quota") != std::string::npos) {
         return "API quota exceeded. Check your " + provider + " account usage.";
       }
 

@@ -51,16 +51,16 @@ std::string read_file_or_throw(const std::string& filepath);
  *
  * Parses error responses from various AI provider APIs (OpenAI, Anthropic,
  * Gemini) and extracts the most relevant error information for display to
- * users. Handles both JSON error objects and plain text error messages.
+ * users. Handles rate limits, authentication, quota, timeout, service
+ * unavailability, and model not found errors.
  *
- * @param raw_error Raw error response string from the AI API
+ * @param provider    AI provider name (e.g., "openai", "anthropic")
+ * @param status_code HTTP status code from the API response (0 if unknown)
+ * @param raw_error   Raw error response string from the AI API
  * @return Formatted, user-friendly error message
  *
  * @example
- * // Input: {"error": {"message": "Invalid API key", "type":
- * "invalid_request_error"}}
- * // Output: "Invalid API key"
- * std::string formatted = formatAPIError(api_response);
+ * std::string formatted = formatAPIError("openai", 429, api_response);
  * std::cerr << "API Error: " << formatted << std::endl;
  */
 std::string formatAPIError(const std::string& provider,
