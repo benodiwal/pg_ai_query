@@ -123,7 +123,7 @@ std::string formatAPIError(const std::string& provider,
                "Please check your ~/.pg_ai.config file.";
       }
 
-      // quota errors(402)
+      // quota errors
       if (error_type == "insufficient_quota" ||
           error_lower.find("quota") != std::string::npos) {
         return "API quota exceeded. Check your " + provider + " account usage.";
@@ -143,7 +143,7 @@ std::string formatAPIError(const std::string& provider,
           std::string model_name = error_message.substr(model_pos + 7);
           model_name.erase(0, model_name.find_first_not_of(" \t"));
           model_name.erase(model_name.find_last_not_of(" \t") + 1);
-          return "Invalid model '" + model_name +  // ← return inside the if
+          return "Invalid model '" + model_name +
                  "'. Please check your configuration and use a valid model "
                  "name. "
                  "Common models: 'claude-sonnet-4-5-20250929' (Anthropic), "
