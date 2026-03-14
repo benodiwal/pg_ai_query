@@ -230,6 +230,60 @@ TEST_F(UtilsTest, ReadFixtureFiles) {
   EXPECT_THAT(content, testing::HasSubstr("[openai]"));
 }
 
+// --- validate_natural_language_query ---
+
+// Empty strings are rejected with appropriate error message.
+TEST_F(UtilsTest, ValidateNaturalLanguageQuery_Empty) {
+  auto err = validate_natural_language_query("", 4000);
+  ASSERT_TRUE(err.has_value());
+  EXPECT_EQ(*err, "Query cannot be empty.");
+}
+
+// Whitespace-only strings are rejected as empty.
+TEST_F(UtilsTest, ValidateNaturalLanguageQuery_WhitespaceOnly) {
+  auto err = validate_natural_language_query("   \t\n  ", 4000);
+  ASSERT_TRUE(err.has_value());
+  EXPECT_EQ(*err, "Query cannot be empty.");
+}
+
+// Queries with leading/trailing whitespace but with content are accepted.
+TEST_F(UtilsTest, ValidateNaturalLanguageQuery_WithLeadingTrailingWhitespace) {
+  auto err = validate_natural_language_query("  show all users  ", 4000);
+  EXPECT_FALSE(err.has_value());
+}
+
+// Negative max_query_length is rejected to avoid unsigned cast issues.
+TEST_F(UtilsTest, ValidateNaturalLanguageQuery_NegativeMaxLength) {
+  auto err = validate_natural_language_query("show users", -1);
+  ASSERT_TRUE(err.has_value());
+  EXPECT_EQ(*err, "Invalid maximum query length.");
+}
+
+// Queries exceeding max length are rejected with length details in message.
+TEST_F(UtilsTest, ValidateNaturalLanguageQuery_TooLong) {
+  const int max_len = 100;
+  std::string long_query(max_len + 1, 'x');
+  auto err = validate_natural_language_query(long_query, max_len);
+  ASSERT_TRUE(err.has_value());
+  EXPECT_THAT(*err, testing::HasSubstr("Query too long"));
+  EXPECT_THAT(*err, testing::HasSubstr("Maximum 100"));
+  EXPECT_THAT(*err, testing::HasSubstr("101 characters"));
+}
+
+// Short valid queries pass validation.
+TEST_F(UtilsTest, ValidateNaturalLanguageQuery_ValidShort) {
+  auto err = validate_natural_language_query("show all users", 4000);
+  EXPECT_FALSE(err.has_value());
+}
+
+// Query exactly at max length is accepted.
+TEST_F(UtilsTest, ValidateNaturalLanguageQuery_ExactlyMaxLength) {
+  const int max_len = 50;
+  std::string query(max_len, 'a');
+  auto err = validate_natural_language_query(query, max_len);
+  EXPECT_FALSE(err.has_value());
+}
+
 // Test TempConfigFile helper
 TEST(TempConfigFileTest, CreatesAndCleansUp) {
   std::string path;

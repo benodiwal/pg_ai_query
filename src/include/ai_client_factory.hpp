@@ -8,11 +8,6 @@
 
 namespace pg_ai {
 
-namespace constants {
-constexpr const char* DEFAULT_OPENAI_MODEL = "gpt-4o";
-constexpr const char* DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5-20250929";
-}  // namespace constants
-
 struct AIClientResult {
   ai::Client client;
   std::string model_name;

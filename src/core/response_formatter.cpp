@@ -1,9 +1,38 @@
 #include "../include/response_formatter.hpp"
 
 #include <sstream>
+#include <string>
 #include <nlohmann/json.hpp>
 
 namespace pg_ai {
+namespace {
+
+std::string format_multiline_comment(const std::string& text,
+                                     const std::string& prefix = "--   ",
+                                     std::size_t max_width = 70) {
+  std::string result;
+  std::istringstream stream(text);
+  std::string word;
+  std::string current_line = prefix;
+
+  while (stream >> word) {
+    const std::size_t space_needed = current_line.length() + word.length() +
+                                     (current_line != prefix ? 1 : 0);
+    if (space_needed > max_width) {
+      result += current_line + "\n";
+      current_line = prefix + word;
+    } else {
+      if (current_line != prefix)
+        current_line += " ";
+      current_line += word;
+    }
+  }
+  if (current_line != prefix) {
+    result += current_line;
+  }
+  return result;
+}
+}  //  anonymous namespace
 
 std::string ResponseFormatter::formatResponse(
     const QueryResult& result,
@@ -52,11 +81,13 @@ std::string ResponseFormatter::createPlainTextResponse(
   std::ostringstream output;
 
   // Main query result
+  output << "-- Query:\n";
   output << result.generated_query;
 
   // Add explanation if enabled
   if (config.show_explanation && !result.explanation.empty()) {
-    output << "\n\n-- Explanation:\n-- " << result.explanation;
+    output << "\n\n-- Explanation:\n";
+    output << format_multiline_comment(result.explanation);
   }
 
   // Add warnings if enabled
@@ -84,14 +115,18 @@ std::string ResponseFormatter::formatWarnings(
   std::ostringstream output;
 
   if (warnings.size() == 1) {
-    output << "-- Warning: " << warnings[0];
+    output << "-- Warning:\n";
+    output << format_multiline_comment(warnings[0]);
   } else {
-    output << "-- Warnings:";
+    output << "-- Warnings:\n";
     for (size_t i = 0; i < warnings.size(); ++i) {
-      output << "\n--   " << (i + 1) << ". " << warnings[i];
+      std::string numbered = std::to_string(i + 1) + ". " + warnings[i];
+      output << format_multiline_comment(numbered, "--   ", 70);
+      if (i + 1 < warnings.size()) {
+        output << "\n";
+      }
     }
   }
-
   return output.str();
 }
 
@@ -99,7 +134,8 @@ std::string ResponseFormatter::formatVisualization(
     const std::string& visualization) {
   std::ostringstream output;
 
-  output << "-- Suggested Visualization:\n-- " << visualization;
+  output << "-- Suggested Visualization:\n";
+  output << format_multiline_comment(visualization);
 
   return output.str();
 }

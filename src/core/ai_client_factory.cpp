@@ -4,6 +4,7 @@
 #include <ai/openai.h>
 
 #include "../include/logger.hpp"
+#include "include/constants.hpp"
 
 namespace pg_ai {
 
@@ -23,7 +24,7 @@ AIClientResult AIClientFactory::createClient(
         std::string base_url =
             (provider_config && !provider_config->api_endpoint.empty())
                 ? provider_config->api_endpoint
-                : config::constants::DEFAULT_OPENAI_ENDPOINT;
+                : constants::DEFAULT_OPENAI_ENDPOINT;
 
         if (provider_config && !provider_config->api_endpoint.empty()) {
           logger::Logger::info("Using custom OpenAI endpoint: " + base_url);
@@ -44,7 +45,7 @@ AIClientResult AIClientFactory::createClient(
         std::string base_url =
             (provider_config && !provider_config->api_endpoint.empty())
                 ? provider_config->api_endpoint
-                : config::constants::DEFAULT_ANTHROPIC_ENDPOINT;
+                : constants::DEFAULT_ANTHROPIC_ENDPOINT;
 
         if (provider_config && !provider_config->api_endpoint.empty()) {
           logger::Logger::info("Using custom Anthropic endpoint: " + base_url);
@@ -61,7 +62,7 @@ AIClientResult AIClientFactory::createClient(
       default: {
         logger::Logger::warning("Unknown provider, defaulting to OpenAI");
         result.client = ai::openai::create_client(
-            api_key, config::constants::DEFAULT_OPENAI_ENDPOINT);
+            api_key, constants::DEFAULT_OPENAI_ENDPOINT);
         result.model_name = constants::DEFAULT_OPENAI_MODEL;
         break;
       }

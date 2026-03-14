@@ -45,9 +45,9 @@ AS 'MODULE_PATHNAME', 'get_table_details'
 LANGUAGE C;
 
 -- Example usage:
--- SELECT pg_get_database_tables();
--- SELECT pg_get_table_details('users');
--- SELECT pg_get_table_details('orders', 'public');
+-- SELECT get_database_tables();
+-- SELECT get_table_details('users');
+-- SELECT get_table_details('orders', 'public');
 
 COMMENT ON FUNCTION get_database_tables() IS
 'Returns JSON array of all user tables in the database with metadata.

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <regex>
 
+#include "../include/logger.hpp"
 #include "../include/query_generator.hpp"
 
 namespace pg_ai {
@@ -38,16 +39,24 @@ nlohmann::json QueryParser::extractSQLFromResponse(const std::string& text) {
   if (std::regex_search(text, match, json_block)) {
     try {
       return nlohmann::json::parse(match[1].str());
-    } catch (...) {
-      // Continue to other parsing methods
+    } catch (const nlohmann::json::parse_error& e) {
+      logger::Logger::debug("JSON parse error in markdown block: " +
+                            std::string(e.what()));
+    } catch (const std::exception& e) {
+      logger::Logger::warning("Unexpected error parsing markdown JSON: " +
+                              std::string(e.what()));
     }
   }
 
   // Try to parse as direct JSON
   try {
     return nlohmann::json::parse(text);
-  } catch (...) {
-    // Continue to fallback
+  } catch (const nlohmann::json::parse_error& e) {
+    logger::Logger::debug("JSON parse error (direct): " +
+                          std::string(e.what()));
+  } catch (const std::exception& e) {
+    logger::Logger::warning("Unexpected error parsing direct JSON: " +
+                            std::string(e.what()));
   }
 
   // ------------------------------------------------------------
@@ -154,8 +163,9 @@ QueryResult QueryParser::parseQueryResponse(const std::string& response_text) {
         warnings_vec.push_back(j["warnings"].get<std::string>());
       }
     }
-  } catch (...) {
-    // Ignore warnings parsing errors
+  } catch (const std::exception& e) {
+    logger::Logger::warning("Error parsing warnings from JSON: " +
+                            std::string(e.what()));
   }
 
   // Check for error indicators in explanation/warnings

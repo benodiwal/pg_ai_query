@@ -1,10 +1,11 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-
 #include "../test_helpers.hpp"
 #include "include/config.hpp"
+#include "include/constants.hpp"
 
 using namespace pg_ai::config;
+using namespace pg_ai::constants;
 using namespace pg_ai::test_utils;
 
 class ConfigManagerTest : public ::testing::Test {
@@ -31,6 +32,7 @@ TEST_F(ConfigManagerTest, LoadsValidCompleteConfig) {
   // Check query settings
   EXPECT_TRUE(config.enforce_limit);
   EXPECT_EQ(config.default_limit, 500);
+  EXPECT_EQ(config.max_query_length, 2000);
 
   // Check response settings
   EXPECT_TRUE(config.show_explanation);
@@ -51,6 +53,7 @@ TEST_F(ConfigManagerTest, LoadsMinimalConfig) {
   EXPECT_FALSE(config.enable_logging);          // default
   EXPECT_EQ(config.request_timeout_ms, 30000);  // default
   EXPECT_EQ(config.max_retries, 3);             // default
+  EXPECT_EQ(config.max_query_length, 4000);     // default
 
   // OpenAI key should be set
   const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
@@ -96,14 +99,11 @@ TEST_F(ConfigManagerTest, LoadsCustomEndpoints) {
   EXPECT_EQ(anthropic->api_endpoint, "https://custom-anthropic.example.com");
 }
 
-// Test loading non-existent file fails 
+// Test loading non-existent file fails
 TEST_F(ConfigManagerTest, ThrowsForNonexistentFile) {
-  EXPECT_THROW(
-      ConfigManager::loadConfig("/nonexistent/path/config.ini"),
-      std::runtime_error
-  );
+  EXPECT_THROW(ConfigManager::loadConfig("/nonexistent/path/config.ini"),
+               std::runtime_error);
 }
-
 
 // Test provider enum to string conversion
 TEST_F(ConfigManagerTest, ProviderToString) {
@@ -224,11 +224,11 @@ api_key = sk-ant-test
 
   const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
   ASSERT_NE(openai, nullptr);
-  EXPECT_EQ(openai->default_model, constants::DEFAULT_OPENAI_MODEL);
+  EXPECT_EQ(openai->default_model, DEFAULT_OPENAI_MODEL);
 
   const auto* anthropic = ConfigManager::getProviderConfig(Provider::ANTHROPIC);
   ASSERT_NE(anthropic, nullptr);
-  EXPECT_EQ(anthropic->default_model, constants::DEFAULT_ANTHROPIC_MODEL);
+  EXPECT_EQ(anthropic->default_model, DEFAULT_ANTHROPIC_MODEL);
 }
 
 // Test numeric value parsing
@@ -240,6 +240,7 @@ max_retries = 10
 
 [query]
 default_limit = 2500
+max_query_length = 8000
 
 [openai]
 api_key = sk-test
@@ -253,6 +254,7 @@ temperature = 0.85
   EXPECT_EQ(config.request_timeout_ms, 120000);
   EXPECT_EQ(config.max_retries, 10);
   EXPECT_EQ(config.default_limit, 2500);
+  EXPECT_EQ(config.max_query_length, 8000);
 
   const auto* openai = ConfigManager::getProviderConfig(Provider::OPENAI);
   ASSERT_NE(openai, nullptr);
@@ -297,14 +299,14 @@ TEST(ConfigurationTest, DefaultConstructorSetsDefaults) {
   EXPECT_EQ(config.max_retries, 3);
   EXPECT_TRUE(config.enforce_limit);
   EXPECT_EQ(config.default_limit, 1000);
+  EXPECT_EQ(config.max_query_length, 4000);
   EXPECT_TRUE(config.show_explanation);
   EXPECT_TRUE(config.show_warnings);
   EXPECT_FALSE(config.show_suggested_visualization);
   EXPECT_FALSE(config.use_formatted_response);
 
   EXPECT_EQ(config.default_provider.provider, Provider::OPENAI);
-  EXPECT_EQ(config.default_provider.default_model,
-            constants::DEFAULT_OPENAI_MODEL);
+  EXPECT_EQ(config.default_provider.default_model, DEFAULT_OPENAI_MODEL);
 }
 
 // Test ProviderConfig default constructor

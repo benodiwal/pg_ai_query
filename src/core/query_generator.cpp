@@ -8,7 +8,6 @@ extern "C" {
 #include <executor/spi.h>
 }
 
-#include <cctype>
 #include <optional>
 #include <sstream>
 #include <vector>
@@ -33,15 +32,18 @@ namespace pg_ai {
 
 QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
   try {
-    if (request.natural_language.empty()) {
-      return QueryResult{
-          .generated_query = "",
-          .explanation = "",
-          .warnings = {},
-          .row_limit_applied = false,
-          .suggested_visualization = "",
-          .success = false,
-          .error_message = "Natural language query cannot be empty"};
+    const auto& cfg = config::ConfigManager::getConfig();
+
+    auto validation_error = utils::validate_natural_language_query(
+        request.natural_language, cfg.max_query_length);
+    if (validation_error) {
+      return QueryResult{.generated_query = "",
+                         .explanation = "",
+                         .warnings = {},
+                         .row_limit_applied = false,
+                         .suggested_visualization = "",
+                         .success = false,
+                         .error_message = *validation_error};
     }
 
     // Use ProviderSelector to determine the provider
@@ -172,7 +174,6 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
 
 std::string QueryGenerator::buildPrompt(const QueryRequest& request) {
   std::ostringstream prompt;
-  const auto& cfg = config::ConfigManager::getConfig();
 
   prompt << "Generate a PostgreSQL query for this request:\n\n";
   prompt << "Request: " << request.natural_language << "\n";
@@ -198,7 +199,9 @@ std::string QueryGenerator::buildPrompt(const QueryRequest& request) {
         }
       }
     }
-  } catch (...) {
+  } catch (const std::exception& e) {
+    logger::Logger::warning("Error building schema context for prompt: " +
+                            std::string(e.what()));
   }
 
   if (!schema_context.empty()) {
@@ -238,7 +241,7 @@ DatabaseSchema QueryGenerator::getDatabaseTables() {
                 t.table_name,
                 t.table_schema,
                 t.table_type,
-                COALESCE(pg_stat.n_tup_ins + pg_stat.n_tup_upd + pg_stat.n_tup_del, 0) as estimated_rows
+                COALESCE(pg_stat.n_live_tup, 0) as estimated_rows
             FROM information_schema.tables t
             LEFT JOIN pg_stat_user_tables pg_stat ON t.table_name = pg_stat.relname
                 AND t.table_schema = pg_stat.schemaname
