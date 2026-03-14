@@ -67,7 +67,6 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
               : "gemini-2.5-flash";
       logger::Logger::info("Using Gemini model: " + model_name);
 
-      const auto& cfg = config::ConfigManager::getConfig();
       std::string system_prompt = prompts::getSystemPrompt(cfg.enforce_limit,cfg.default_limit);
       std::string prompt = buildPrompt(request);
 

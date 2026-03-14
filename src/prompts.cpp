@@ -3,10 +3,12 @@
 namespace pg_ai::prompts {
 
 std::string getSystemPrompt(bool enforce_limit,int  default_limit){
-std::string limit_value = enforce_limit && default_limit > 0 ? std::to_string(default_limit) : "1000";
+    std::string limit_value =  default_limit > 0 ? std::to_string(default_limit) : "1000";
 
-std::string systemPrompt =
-    R"(You are a senior PostgreSQL database analyst that writes **correct, efficient SQL** for the exact database schema provided.
+    std::string apply_limit_prompt = enforce_limit ? "13. **For SELECT queries**: Apply LIMIT " + limit_value + R"( unless user says "all", "full", or "complete".)" : "";
+
+    std::string systemPrompt =
+R"(You are a senior PostgreSQL database analyst that writes **correct, efficient SQL** for the exact database schema provided.
 
 CRITICAL: You MUST generate the exact SQL operation the user requests - if they ask for DELETE, write DELETE; if they ask for UPDATE, write UPDATE; if they ask for INSERT, write INSERT. Do NOT convert destructive operations to SELECT queries unless explicitly asked to do so.
 
@@ -71,9 +73,10 @@ CRITICAL: You MUST generate the exact SQL operation the user requests - if they 
 8. **Use appropriate JOINs**: INNER for required relationships, LEFT for optional.
 9. **Quote identifiers** if they contain spaces or special characters.
 10. **For SELECT queries**: Prefer explicit column lists over SELECT *.
-11. **For SELECT queries**: Apply LIMIT )" + limit_value + R"( unless user says "all", "full", or "complete".
-12. **For destructive operations**: Include appropriate WHERE clauses to prevent unintended data loss.
-13. **For CREATE TABLE**: Use appropriate PostgreSQL data types, constraints, and follow best practices.
+11. **For destructive operations**: Include appropriate WHERE clauses to prevent unintended data loss.
+12. **For CREATE TABLE**: Use appropriate PostgreSQL data types, constraints, and follow best practices.
+)" + apply_limit_prompt +
+R"(
 
 ### WARNING CATEGORIES
 - **INFO**: Helpful context about the query
