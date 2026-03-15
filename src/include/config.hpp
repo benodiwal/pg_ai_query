@@ -33,6 +33,16 @@ struct ProviderConfig {
         default_max_tokens(4096),
         default_temperature(0.7),
         api_endpoint() {}
+
+  ProviderConfig(const Provider provider,
+                 std::string default_model,
+                 const int default_max_tokens,
+                 const double default_temperature = 0.7)
+      : provider(provider),
+        default_model(std::move(default_model)),
+        default_max_tokens(default_max_tokens),
+        default_temperature(default_temperature),
+        api_endpoint() {}
 };
 
 /**
@@ -123,6 +133,7 @@ class ConfigManager {
    */
   static const ProviderConfig* getProviderConfig(Provider provider);
 
+  static ProviderConfig getProviderDefaultConfigValues(Provider provider);
   /**
    * @brief Convert provider enum to string
    *
@@ -179,6 +190,79 @@ class ConfigManager {
    * configuration file settings.
    */
   static void loadEnvConfig();
+
+  /**
+   * @brief Validates configuration section
+   *
+   * @param section section that will be validated to current available sections
+   * @return true if valid section, false otherwise
+   * @note Internal use only
+   */
+  static bool isValidSection(const std::string& section);
+
+  /**
+   * @brief Validates key-value line to INI style format using a regex pattern
+   *
+   * @param line key-value line that will be validated
+   * @return true if valid INI style format, false otherwise
+   * @note Internal use only
+   */
+  static bool isValidLine(const std::string& line);
+
+  /**
+   * @brief parses boolean value with multiple possible variants (for internal
+   * use)
+   *
+   * @param value boolean value that can be (true/false,yes/no,1/0), will be
+   * converted to lowercase.
+   * @return true/false based on the provided value, will fall back to false
+   * with warning if wrong boolean value provided
+   * @note Internal use only
+   */
+  static bool parseBooleanValue(const std::string& value);
+
+  /**
+   * @brief Unescape quotes in a string
+   *
+   * Converts escaped quotes (`\"` or `\'`) into literal quotes. Other
+   * characters preceded by `\` are treated literally.
+   *
+   * @param value Input string possibly containing escaped quotes
+   * @return String with escaped quotes converted to literal quotes
+   * @note Internal use only
+   */
+  static std::string unescapeQuotes(const std::string& value);
+
+  /**
+   * @brief Find the closing quote in a string
+   *
+   * Scans a quoted string to locate the position of the closing quote, taking
+   * escaped quotes into account.
+   *
+   * @param value Input string starting with an opening quote
+   * @param quote Quote character to match (`'` or `"`)
+   * @return Index of the closing quote in the string, or std::string::npos if
+   * not found
+   * @note Internal use only
+   */
+  static size_t findClosingQuote(const std::string& value, char quote);
+
+  /**
+   * @brief Parse a provider-specific configuration key-value pair
+   *
+   * Updates the configuration for a given provider (OpenAI, Anthropic, Gemini)
+   * with a specific key-value pair.
+   *
+   * @param key Configuration key (e.g., "api_key", "default_model")
+   * @param value Configuration value as string
+   * @param provider Provider enum specifying which provider to update
+   *
+   * if the provider is UNKNOWN, the function does nothing.
+   * @note Internal use only
+   */
+  static void parseProviderSection(const std::string& key,
+                                   const std::string& value,
+                                   Provider provider);
 };
 
 // Convenience macros for accessing config
