@@ -90,6 +90,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/ai-sdk-cpp/include)
 # Source files for the clean implementation
 set(SOURCES
     src/pg_ai_query.cpp
+    src/pg_ai_query_utils.cpp
     src/core/query_generator.cpp
     src/core/query_parser.cpp
     src/core/response_formatter.cpp
