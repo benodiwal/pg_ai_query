@@ -88,3 +88,21 @@ Parameters:
 Returns: JSON with raw explain output and AI-generated performance insights
 Example: SELECT explain_query(''SELECT * FROM products ORDER BY price DESC LIMIT 10'', ''sk-...'', ''anthropic'');';
 
+
+CREATE TABLE IF NOT EXISTS client_env_vars (
+                                               var_name text PRIMARY KEY,
+                                               var_value text
+);
+
+CREATE OR REPLACE FUNCTION push_env_var(p_var_name text, p_var_value text)
+RETURNS void AS $$
+BEGIN
+    -- Only insert if the table exists
+    IF to_regclass('client_env_vars') IS NOT NULL THEN
+        INSERT INTO client_env_vars(var_name, var_value)
+        VALUES (p_var_name, p_var_value)
+        ON CONFLICT (var_name) DO UPDATE
+                                             SET var_value = EXCLUDED.var_value;
+END IF;
+END;
+$$ LANGUAGE plpgsql;

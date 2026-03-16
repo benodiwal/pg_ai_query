@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.16)
 # Project definition
 # We use C++20 for features like designated initializers, std::format
 # and better template support which is required by modern AI SDKs.
-project(pg_ai_query 
+project(pg_ai_query
     VERSION 0.1.1
     LANGUAGES CXX
     DESCRIPTION "PostgreSQL extension for AI-powered query generation"
@@ -31,7 +31,7 @@ find_program(PG_CONFIG pg_config
 
 # If pg_config is not found, provide helpful installation instructions
 if(NOT PG_CONFIG)
-    message(FATAL_ERROR 
+    message(FATAL_ERROR
         "pg_config not found. Install postgresql-server-dev package.\n"
         "On Ubuntu: apt install postgresql-server-dev-14\n"
         "On Debian: apt install postgresql-server-dev-all\n"
@@ -118,7 +118,7 @@ if(APPLE)
     else()
         set(PG_EXTENSION_SUFFIX ".so")
     endif()
-    
+
     # Prefix must be empty (postgres expects 'pg_ai_query.so', not 'libpg_ai_query.so')
     # bundle_loader ensures symbols are resolved against the postgres binary at load time
     set_target_properties(pg_ai_query PROPERTIES
@@ -315,6 +315,13 @@ install(DIRECTORY prompts/
     DESTINATION ${PG_SHAREDIR}/extension/prompts/
     FILES_MATCHING PATTERN "*.txt"
 )
+
+# Define the path to your setup script
+set(SETUP_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/initalize_env_var_logic.sh")
+
+# Tell CMake to run this script during 'make install'
+install(CODE "execute_process(COMMAND bash ${SETUP_SCRIPT}
+              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})")
 
 # Optional: Build logger test (not built by default)
 # Enable with: cmake .. -DBUILD_LOGGER_TEST=ON
