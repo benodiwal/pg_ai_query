@@ -8,6 +8,7 @@ extern "C" {
 #include <miscadmin.h>
 #include <utils/builtins.h>
 #include <utils/elog.h>
+#include <utils/guc.h>
 #include <utils/memutils.h>
 }
 
@@ -24,6 +25,70 @@ PG_FUNCTION_INFO_V1(generate_query);
 PG_FUNCTION_INFO_V1(get_database_tables);
 PG_FUNCTION_INFO_V1(get_table_details);
 PG_FUNCTION_INFO_V1(explain_query);
+
+// GUC variable storage — pointers are owned and updated by PostgreSQL's
+// GUC machinery.  When a user runs SET pg_ai.openai_api_key = 'sk-...',
+// PostgreSQL writes a new string pointer here automatically.
+// When the user runs RESET pg_ai.openai_api_key, PostgreSQL sets the
+// pointer back to NULL (our bootValue), indicating "no override".
+static char* guc_openai_api_key    = nullptr;
+static char* guc_anthropic_api_key = nullptr;
+static char* guc_gemini_api_key    = nullptr;
+
+/**
+ * _PG_init — called once when the extension shared library is loaded.
+ *
+ * Registers the pg_ai.* GUC variables so users can supply API keys without
+ * a config file entry:
+ *
+ *   SET pg_ai.openai_api_key = 'sk-...';
+ *   SELECT generate_query('show all users');
+ *
+ * or persistently in postgresql.conf / ALTER SYSTEM:
+ *
+ *   pg_ai.openai_api_key = 'sk-...'
+ *
+ * GUC values override ~/.pg_ai.config keys; RESET reverts to the config file.
+ */
+void _PG_init(void) {
+  // Warn if any pg_ai.* keys were set before the extension was loaded
+  // (requires PG 9.6+; PG 15+ offers MarkGUCPrefixReserved for hard errors).
+  EmitWarningsOnPlaceholders("pg_ai");
+
+  DefineCustomStringVariable(
+      "pg_ai.openai_api_key",
+      "OpenAI API key for pg_ai_query. Overrides the [openai] api_key in "
+      "~/.pg_ai.config. Set with: SET pg_ai.openai_api_key = 'sk-...';",
+      NULL,                   /* long description */
+      &guc_openai_api_key,    /* value address — PostgreSQL writes here */
+      NULL,                   /* bootValue: NULL means "not set" */
+      PGC_USERSET,            /* any connected user can SET for their session */
+      GUC_NO_SHOW_ALL,        /* omit from SHOW ALL to reduce log leakage */
+      NULL, NULL, NULL        /* check_hook, assign_hook, show_hook */
+  );
+
+  DefineCustomStringVariable(
+      "pg_ai.anthropic_api_key",
+      "Anthropic API key for pg_ai_query. Overrides the [anthropic] api_key "
+      "in ~/.pg_ai.config.",
+      NULL,
+      &guc_anthropic_api_key,
+      NULL,
+      PGC_USERSET,
+      GUC_NO_SHOW_ALL,
+      NULL, NULL, NULL);
+
+  DefineCustomStringVariable(
+      "pg_ai.gemini_api_key",
+      "Google Gemini API key for pg_ai_query. Overrides the [gemini] api_key "
+      "in ~/.pg_ai.config.",
+      NULL,
+      &guc_gemini_api_key,
+      NULL,
+      PGC_USERSET,
+      GUC_NO_SHOW_ALL,
+      NULL, NULL, NULL);
+}
 
 /**
  * generate_query(natural_language_query text, api_key text DEFAULT NULL,
@@ -43,6 +108,12 @@ Datum generate_query(PG_FUNCTION_ARGS) {
     std::string api_key = api_key_arg ? text_to_cstring(api_key_arg) : "";
     std::string provider =
         provider_arg ? text_to_cstring(provider_arg) : "auto";
+
+    // Apply any GUC-set API keys on top of config file values.
+    // Priority: SQL parameter > GUC SET > config file.
+    // Called on every invocation so SET/RESET is reflected immediately.
+    pg_ai::config::ConfigManager::applyGucOverrides(
+        guc_openai_api_key, guc_anthropic_api_key, guc_gemini_api_key);
 
     pg_ai::QueryRequest request{
         .natural_language = nl_query, .api_key = api_key, .provider = provider};
@@ -183,6 +254,10 @@ Datum explain_query(PG_FUNCTION_ARGS) {
     std::string api_key = api_key_arg ? text_to_cstring(api_key_arg) : "";
     std::string provider =
         provider_arg ? text_to_cstring(provider_arg) : "auto";
+
+    // Apply any GUC-set API keys on top of config file values.
+    pg_ai::config::ConfigManager::applyGucOverrides(
+        guc_openai_api_key, guc_anthropic_api_key, guc_gemini_api_key);
 
     pg_ai::ExplainRequest request{
         .query_text = query_text, .api_key = api_key, .provider = provider};

@@ -145,8 +145,33 @@ class ConfigManager {
    */
   static void reset();
 
+  /**
+   * @brief Apply GUC variable overrides on top of the file-parsed config.
+   *
+   * Called from PostgreSQL entry points (generate_query, explain_query) on
+   * every invocation, passing the current values of the pg_ai.* GUC vars.
+   *
+   * Internally rebuilds config_ from base_config_ (the file-parsed snapshot)
+   * before applying overrides, so RESET correctly reverts to the config file
+   * value rather than leaving a stale GUC value in place.
+   *
+   * A nullptr or empty string for any key means "no override for this
+   * provider — use whatever was in the config file."
+   *
+   * Safe to call in unit tests with literal const char* values; no PostgreSQL
+   * headers or GUC machinery are needed inside this method.
+   *
+   * @param openai_key    Value of pg_ai.openai_api_key GUC, or nullptr/""
+   * @param anthropic_key Value of pg_ai.anthropic_api_key GUC, or nullptr/""
+   * @param gemini_key    Value of pg_ai.gemini_api_key GUC, or nullptr/""
+   */
+  static void applyGucOverrides(const char* openai_key,
+                                 const char* anthropic_key,
+                                 const char* gemini_key);
+
  private:
   static Configuration config_;
+  static Configuration base_config_;
   static bool config_loaded_;
 
   /**
