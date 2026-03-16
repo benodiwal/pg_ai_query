@@ -101,6 +101,7 @@ set(SOURCES
     src/utils.cpp
     src/prompts.cpp
     src/config.cpp
+    src/core/spi_command_executor.cpp
 )
 
 # Get PostgreSQL version to handle platform-specific naming conventions
