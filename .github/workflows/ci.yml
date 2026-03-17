@@ -155,7 +155,7 @@ jobs:
           cd build_tests && ./tests/pg_ai_query_tests --gtest_output=xml:test_results.xml
           echo "Unit tests passed!"
       - name: Upload test results
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: test-results-${{ matrix.os }}-pg${{ matrix.pg_version }}
@@ -253,7 +253,7 @@ jobs:
           psql -d $PGDATABASE -f tests/sql/teardown.sql -q 2>/dev/null || true
           echo "PostgreSQL test suite passed!"
       - name: Upload build artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: build-artifacts-${{ matrix.os }}-pg${{ matrix.pg_version }}
@@ -303,7 +303,7 @@ jobs:
           xargs clang-tidy -p build --checks='-*,readability-*,performance-*,bugprone-*,modernize-*' \
           2>&1 | tee clang-tidy.log || true
       - name: Upload analysis results
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: static-analysis-results
           path: |
@@ -403,7 +403,7 @@ jobs:
           sarif_file: "trivy-results.sarif"
       - name: Upload Trivy results as artifact (for PRs)
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: trivy-security-scan-results
           path: "trivy-results.sarif"
