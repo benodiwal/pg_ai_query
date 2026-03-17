@@ -354,6 +354,20 @@ TEST_F(QueryParserTest, ParseResponse_SystemTableFixture) {
   EXPECT_THAT(result.error_message, testing::HasSubstr("system tables"));
 }
 
+TEST_F(QueryParserTest, ParseResponse_SystemTableAllowedWhenFlagTrue) {
+  std::string response = R"({
+        "sql": "SELECT * FROM information_schema.tables",
+        "explanation": "Lists all tables"
+    })";
+
+  QueryResult result = QueryParser::parseQueryResponse(
+      response, true /* allow_system_table_access */);
+
+  EXPECT_TRUE(result.success);
+  EXPECT_EQ(result.generated_query, "SELECT * FROM information_schema.tables");
+  EXPECT_EQ(result.explanation, "Lists all tables");
+}
+
 TEST_F(QueryParserTest, ParseResponse_MultipleWarningsFixture) {
   std::string response = readResponseFixture("multiple_warnings.json");
   ASSERT_FALSE(response.empty()) << "Could not read fixture file";
