@@ -363,3 +363,36 @@ TEST_F(QueryParserTest, ParseResponse_MultipleWarningsFixture) {
   EXPECT_TRUE(result.success);
   EXPECT_EQ(result.warnings.size(), 3);
 }
+
+
+// dangerous query warning
+TEST(QueryParserTest, WarnsDangerousQuery) {
+  std::string input = R"({"sql": "DROP TABLE users"})";
+
+  auto result = QueryParser::parseQueryResponse(input);
+
+  EXPECT_TRUE(result.success);
+  EXPECT_THAT(result.warnings,
+              testing::Contains(testing::HasSubstr("Dangerous query")));
+}
+
+// select * warning
+TEST(QueryParserTest, WarnsSelectAll) {
+  std::string input = R"({"sql": "SELECT * FROM users"})";
+
+  auto result = QueryParser::parseQueryResponse(input);
+
+  EXPECT_THAT(result.warnings,
+              testing::Contains(testing::HasSubstr("SELECT *")));
+}
+
+// missing limit warning
+TEST(QueryParserTest, WarnsMissingLimit) {
+  std::string input = R"({"sql": "SELECT name FROM users"})";
+
+  auto result = QueryParser::parseQueryResponse(input);
+
+  EXPECT_THAT(result.warnings,
+              testing::Contains(testing::HasSubstr("LIMIT")));
+}
+

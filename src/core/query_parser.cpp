@@ -7,6 +7,17 @@
 #include "../include/query_generator.hpp"
 
 namespace pg_ai {
+  // Detect potentially dangerous SQL operations (non-blocking warning)
+  static bool isDangerousQuery(const std::string& query){
+    std::string q = query;
+    std::transform(q.begin(), q.end(), q.begin(), ::tolower);
+
+      return q.find("drop ") != std::string::npos ||
+       q.find("delete ") != std::string::npos ||
+       q.find("truncate ") != std::string::npos ||
+       q.find("alter ") != std::string::npos ||
+       q.find("update ") != std::string::npos;
+  }
 
 nlohmann::json QueryParser::extractSQLFromResponse(const std::string& text) {
   // ------------------------------------------------------------
@@ -202,6 +213,28 @@ QueryResult QueryParser::parseQueryResponse(const std::string& response_text) {
         .error_message =
             "Generated query accesses system tables. Please query user "
             "tables only."};
+  }
+
+  // 🚨 Check for dangerous queries
+// 🚨 Warn for dangerous queries (non-blocking)
+if (isDangerousQuery(sql)) {
+  warnings_vec.push_back(
+      "Dangerous query detected: this query may modify or delete data");
+}
+
+  // ⚠️ Add safety warnings
+  std::string lower_sql = sql;
+  std::transform(lower_sql.begin(), lower_sql.end(), lower_sql.begin(),
+                ::tolower);
+
+  if (lower_sql.find("select *") != std::string::npos) {
+    warnings_vec.push_back(
+        "Avoid using SELECT * for better performance");
+  }
+
+  if (lower_sql.find("limit") == std::string::npos) {
+    warnings_vec.push_back(
+        "Query does not contain LIMIT clause");
   }
 
   // Success case
