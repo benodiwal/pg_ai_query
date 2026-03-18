@@ -252,3 +252,42 @@ This project is licensed under the terms specified in the [LICENSE](LICENSE) fil
     <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=benodiwal/pg_ai_query&type=Timeline" />
   </picture>
 </a>
+
+
+
+
+## Additional Query Examples and Observations
+
+While exploring the system, I tested how it handles different types of queries. Below are some additional examples that highlight common use cases and edge cases.
+
+### Example 1: Aggregation
+Input: Show total sales per month  
+Expected SQL:
+SELECT month, SUM(sales) FROM sales_table GROUP BY month;
+
+### Example 2: Filtering with Conditions
+Input: Customers who have not placed orders in last 6 months  
+Expected SQL:
+SELECT * FROM customers WHERE last_order_date < NOW() - INTERVAL '6 months';
+
+### Example 3: Join Queries
+Input: Show orders along with customer names  
+Expected SQL:
+SELECT o.order_id, c.customer_name 
+FROM orders o 
+JOIN customers c ON o.customer_id = c.customer_id;
+
+### Example 4: Ranking Queries
+Input: Top 5 products by revenue  
+Expected SQL:
+SELECT product_id, SUM(revenue) AS total_revenue
+FROM sales
+GROUP BY product_id
+ORDER BY total_revenue DESC
+LIMIT 5;
+
+---
+
+### Observation
+
+While testing similar queries, I noticed that cases involving joins and aggregations may require stronger schema awareness to ensure correctness. These examples can help identify such edge cases and improve the robustness of query generation.
