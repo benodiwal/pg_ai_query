@@ -31,6 +31,8 @@
             openssl
             zlib
             gettext
+            curl
+            curl.dev
           ];
 
           # Initialize git submodules
@@ -99,6 +101,8 @@
             openssl
             zlib
             gettext
+            curl
+            curl.dev
 
             # Development tools
             gdb

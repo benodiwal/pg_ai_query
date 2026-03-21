@@ -11,6 +11,8 @@ struct GeminiRequest {
   std::string user_prompt;
   std::optional<double> temperature;
   std::optional<int> max_tokens;
+  int timeout_ms;
+  int max_retries;
 };
 
 struct GeminiResponse {
