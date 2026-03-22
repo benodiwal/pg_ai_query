@@ -5,17 +5,6 @@ A powerful PostgreSQL extension that generates SQL queries from natural language
 ## Features
 
 - **Natural Language to SQL**: Convert plain English descriptions into valid PostgreSQL queries
-- **Available OpenAI Models:**
-
-You can use any valid OpenAI model name. Here is a comparison of common models:
-
-| Model Name | Type | Cost | Pros | Cons |
-| :--- | :--- | :--- | :--- | :--- |
-| `gpt-5` | Next Gen | High | Ultimate reasoning and capabilities | High cost, availability limited |
-| `gpt-4o` | Flagship | Moderate | Best overall performance, fast | Higher cost than mini |
-| `gpt-4o-mini` | Economy | Low | Very cheap, fast, good for simple tasks | Less capable reasoning than 4o |
-
-
 - **Automatic Schema Discovery**: Analyzes your database schema to understand table structures and relationships
 - **Intelligent Query Generation**: Creates optimized queries with appropriate JOINs, WHERE clauses, and LIMIT constraints
 - **Query Performance Analysis**: Run EXPLAIN ANALYZE on queries and get AI-powered performance insights and optimization suggestions
@@ -80,25 +69,9 @@ api_key = "your-google-api-key-here"
 default_model = "gemini-2.5-flash"
 ```
 
-**Available Anthropic Models:**
+**Available Models:**
 
-You can use any valid Anthropic model name. Here is a comparison of common models:
-
-| Model Name | Type | Cost | Pros | Cons |
-| :--- | :--- | :--- | :--- | :--- |
-| `claude-4.5-opus` | Next Gen | High | Ultimate reasoning and capabilities | High cost, availability limited |
-| `claude-sonnet-4-5-20250929` | Flagship | Moderate | Top-tier reasoning and coding | - |
-| `claude-3-haiku-20240307` | Economy | Low | Extremely fast and cheap | Lower reasoning capability |
-
-**Available Google Gemini Models:**
-
-You can use any valid Google Gemini model name. Here is a comparison of common models:
-
-| Model Name | Type | Cost | Pros | Cons |
-| :--- | :--- | :--- | :--- | :--- |
-| `gemini-2.5-pro` | Flagship | Moderate | Best overall performance, multimodal | Higher cost |
-| `gemini-2.5-flash` | Economy | Low | Very fast, cost-effective | Less capable than Pro |
-| `gemini-2.0-flash` | Fast | Low | Quick responses, good for simple tasks | Previous generation |
+You can use any valid Anthropic, OpenAI and Gemini model name.  
 
 ### Basic Usage
 
