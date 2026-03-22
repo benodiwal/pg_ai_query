@@ -39,10 +39,20 @@ Datum generate_query(PG_FUNCTION_ARGS) {
     text* api_key_arg = PG_ARGISNULL(1) ? nullptr : PG_GETARG_TEXT_PP(1);
     text* provider_arg = PG_ARGISNULL(2) ? nullptr : PG_GETARG_TEXT_PP(2);
 
-    std::string nl_query = text_to_cstring(nl_query_arg);
-    std::string api_key = api_key_arg ? text_to_cstring(api_key_arg) : "";
-    std::string provider =
-        provider_arg ? text_to_cstring(provider_arg) : "auto";
+    char* nl_query_cstr = text_to_cstring(nl_query_arg);
+    std::string nl_query = nl_query_cstr;
+    pfree(nl_query_cstr);
+
+    char* api_key_cstr = api_key_arg ? text_to_cstring(api_key_arg) : nullptr;
+    std::string api_key = api_key_cstr ? api_key_cstr : "";
+    if (api_key_cstr)
+      pfree(api_key_cstr);
+
+    char* provider_cstr =
+        provider_arg ? text_to_cstring(provider_arg) : nullptr;
+    std::string provider = provider_cstr ? provider_cstr : "auto";
+    if (provider_cstr)
+      pfree(provider_cstr);
 
     pg_ai::QueryRequest request{
         .natural_language = nl_query, .api_key = api_key, .provider = provider};
@@ -120,9 +130,15 @@ Datum get_table_details(PG_FUNCTION_ARGS) {
     text* table_name_arg = PG_GETARG_TEXT_PP(0);
     text* schema_name_arg = PG_ARGISNULL(1) ? nullptr : PG_GETARG_TEXT_PP(1);
 
-    std::string table_name = text_to_cstring(table_name_arg);
-    std::string schema_name =
-        schema_name_arg ? text_to_cstring(schema_name_arg) : "public";
+    char* table_name_cstr = text_to_cstring(table_name_arg);
+    std::string table_name = table_name_cstr;
+    pfree(table_name_cstr);
+
+    char* schema_name_cstr =
+        schema_name_arg ? text_to_cstring(schema_name_arg) : nullptr;
+    std::string schema_name = schema_name_cstr ? schema_name_cstr : "public";
+    if (schema_name_cstr)
+      pfree(schema_name_cstr);
 
     auto result =
         pg_ai::QueryGenerator::getTableDetails(table_name, schema_name);
@@ -179,10 +195,20 @@ Datum explain_query(PG_FUNCTION_ARGS) {
     text* api_key_arg = PG_ARGISNULL(1) ? nullptr : PG_GETARG_TEXT_PP(1);
     text* provider_arg = PG_ARGISNULL(2) ? nullptr : PG_GETARG_TEXT_PP(2);
 
-    std::string query_text = text_to_cstring(query_text_arg);
-    std::string api_key = api_key_arg ? text_to_cstring(api_key_arg) : "";
-    std::string provider =
-        provider_arg ? text_to_cstring(provider_arg) : "auto";
+    char* query_text_cstr = text_to_cstring(query_text_arg);
+    std::string query_text = query_text_cstr;
+    pfree(query_text_cstr);
+
+    char* api_key_cstr = api_key_arg ? text_to_cstring(api_key_arg) : nullptr;
+    std::string api_key = api_key_cstr ? api_key_cstr : "";
+    if (api_key_cstr)
+      pfree(api_key_cstr);
+
+    char* provider_cstr =
+        provider_arg ? text_to_cstring(provider_arg) : nullptr;
+    std::string provider = provider_cstr ? provider_cstr : "auto";
+    if (provider_cstr)
+      pfree(provider_cstr);
 
     pg_ai::ExplainRequest request{
         .query_text = query_text, .api_key = api_key, .provider = provider};

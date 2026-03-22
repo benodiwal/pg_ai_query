@@ -193,6 +193,10 @@ GeminiResponse GeminiClient::make_http_request(const std::string& url,
     headers.append("x-goog-api-key: " + api_key_);
     curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers.get());
 
+    // Set timeout
+    curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT_MS,
+                     static_cast<long>(request.timeout_ms));
+
     // Set POST data
     curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, body.c_str());
 
@@ -227,8 +231,16 @@ GeminiResponse GeminiClient::generate_text(const GeminiRequest& request) {
   // Build request body
   std::string body = build_request_body(request);
 
-  // Make HTTP request
-  return make_http_request(url, body);
+  GeminiResponse response;
+  int attempts = 0;
+  do {
+    response = make_http_request(url, body);
+    if (response.success)
+      break;
+    attempts++;
+  } while (attempts <= request.max_retries);
+
+  return response;
 }
 
 }  // namespace gemini

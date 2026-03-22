@@ -23,40 +23,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # ------------------------------------------------------------------------------
 
 # Find pg_config to locate PostgreSQL installation paths
-# pg_config is the standard tool for discovering PostgreSQL build environment
 find_program(PG_CONFIG pg_config
     HINTS /usr/bin /usr/local/bin /opt/homebrew/bin
     DOC "Path to pg_config executable"
 )
 
-# If pg_config is not found, provide helpful installation instructions
 if(NOT PG_CONFIG)
-    message(FATAL_ERROR 
-        "pg_config not found. Install postgresql-server-dev package.\n"
-        "On Ubuntu: apt install postgresql-server-dev-14\n"
-        "On Debian: apt install postgresql-server-dev-all\n"
-        "On macOS: brew install postgresql@14\n"
-        "On Fedora/RHEL: dnf install postgresql-devel\n"
-        "On Arch Linux: pacman -S postgresql-libs"
-    )
+    message(WARNING "pg_config not found. Extension library will not be built, but unit tests can still run.")
+else()
+    message(STATUS "Found pg_config: ${PG_CONFIG}")
+
+    # Extract required paths from pg_config
+    execute_process(COMMAND ${PG_CONFIG} --includedir-server OUTPUT_VARIABLE PG_INCLUDE_SERVER OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${PG_CONFIG} --includedir OUTPUT_VARIABLE PG_INCLUDE OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${PG_CONFIG} --pkglibdir OUTPUT_VARIABLE PG_PKGLIB OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${PG_CONFIG} --libdir OUTPUT_VARIABLE PG_LIBDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${PG_CONFIG} --bindir OUTPUT_VARIABLE PG_BINDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${PG_CONFIG} --sharedir OUTPUT_VARIABLE PG_SHAREDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    # Include PostgreSQL headers
+    include_directories(${PG_INCLUDE_SERVER})
+    include_directories(${PG_INCLUDE})
 endif()
-
-# Extract required paths from pg_config
-# --includedir-server: Where PostgreSQL server headers are (postgres.h, spi.h, etc.)
-# --includedir: Where general PostgreSQL client headers are
-# --pkglibdir: Where extension shared libraries (.so/.dylib) must be installed
-# --sharedir: Where extension SQL scripts and control files are located
-execute_process(COMMAND ${PG_CONFIG} --includedir-server OUTPUT_VARIABLE PG_INCLUDE_SERVER OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND ${PG_CONFIG} --includedir OUTPUT_VARIABLE PG_INCLUDE OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND ${PG_CONFIG} --pkglibdir OUTPUT_VARIABLE PG_PKGLIB OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND ${PG_CONFIG} --libdir OUTPUT_VARIABLE PG_LIBDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND ${PG_CONFIG} --bindir OUTPUT_VARIABLE PG_BINDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND ${PG_CONFIG} --sharedir OUTPUT_VARIABLE PG_SHAREDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-# Include PostgreSQL headers
-# These are essential for any PostgreSQL extension to access internal APIs
-include_directories(${PG_INCLUDE_SERVER})
-include_directories(${PG_INCLUDE})
 
 # ------------------------------------------------------------------------------
 # Third-Party Dependencies (Submodules)
@@ -66,8 +54,9 @@ include_directories(${PG_INCLUDE})
 # We build as static libraries to simplify extension packaging and avoid 
 # runtime shared library loading issues (RPATH) within the PostgreSQL process.
 # Trade-off: Larger binary size, but eliminates dependency management headaches.
-set(AI_SDK_BUILD_EXAMPLES OFF CACHE BOOL "Disable SDK examples")
-set(AI_SDK_BUILD_TESTS OFF CACHE BOOL "Disable SDK tests")
+set(SAVED_BUILD_TESTS ${BUILD_TESTS})
+set(BUILD_EXAMPLES OFF)
+set(BUILD_TESTS OFF)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Force static libraries for dependencies")
 set(AI_SDK_STATIC_ONLY ON CACHE BOOL "Only use static SDK components")
 
@@ -77,6 +66,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Add the ai-sdk-cpp submodule
 # This provides the core AI client logic for OpenAI, Anthropic, and Gemini.
 add_subdirectory(third_party/ai-sdk-cpp)
+
+set(BUILD_TESTS ${SAVED_BUILD_TESTS})
 
 # Include our source directories
 include_directories(src)
@@ -104,9 +95,15 @@ set(SOURCES
 )
 
 # Get PostgreSQL version to handle platform-specific naming conventions
-execute_process(COMMAND ${PG_CONFIG} --version OUTPUT_VARIABLE PG_VERSION_OUTPUT OUTPUT_STRIP_TRAILING_WHITESPACE)
-string(REGEX MATCH "PostgreSQL ([0-9]+)" PG_VERSION_MATCH ${PG_VERSION_OUTPUT})
-set(PG_MAJOR_VERSION ${CMAKE_MATCH_1})
+if(PG_CONFIG)
+    execute_process(COMMAND ${PG_CONFIG} --version OUTPUT_VARIABLE PG_VERSION_OUTPUT OUTPUT_STRIP_TRAILING_WHITESPACE)
+    string(REGEX MATCH "PostgreSQL ([0-9]+)" _ ${PG_VERSION_OUTPUT})
+    set(PG_MAJOR_VERSION ${CMAKE_MATCH_1})
+endif()
+if(PG_CONFIG)
+    string(REGEX MATCH "PostgreSQL ([0-9]+)" PG_VERSION_MATCH ${PG_VERSION_OUTPUT})
+    set(PG_MAJOR_VERSION ${CMAKE_MATCH_1})
+endif()
 
 # Platform-specific build logic
 if(APPLE)
@@ -287,7 +284,9 @@ target_compile_definitions(pg_ai_query PRIVATE
 # Install to both locations for maximum compatibility:
 # - PKGLIBDIR: Standard PostgreSQL extension location (primary)
 # - LIBDIR: Some distributions expect libraries here (fallback)
-execute_process(COMMAND ${PG_CONFIG} --version OUTPUT_VARIABLE PG_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(PG_CONFIG)
+    execute_process(COMMAND ${PG_CONFIG} --version OUTPUT_VARIABLE PG_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif()
 set(PG_MAJOR_VERSION ${CMAKE_MATCH_1})
 
 install(TARGETS pg_ai_query LIBRARY DESTINATION ${PG_LIBDIR})

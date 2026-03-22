@@ -83,7 +83,9 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
           .max_tokens =
               selection.config
                   ? std::optional<int>(selection.config->default_max_tokens)
-                  : std::nullopt};
+                  : std::nullopt,
+          .timeout_ms = cfg.request_timeout_ms,
+          .max_retries = cfg.max_retries};
 
       auto gemini_result = gemini_client.generate_text(gemini_request);
 
@@ -123,6 +125,9 @@ QueryResult QueryGenerator::generateQuery(const QueryRequest& request) {
       logger::Logger::info("Using model: " + client_result.model_name +
                            " with default settings");
     }
+
+    options.timeout_ms = cfg.request_timeout_ms;
+    options.max_retries = cfg.max_retries;
 
     auto result = client_result.client.generate_text(options);
 
@@ -611,7 +616,9 @@ ExplainResult QueryGenerator::explainQuery(const ExplainRequest& request) {
           .max_tokens =
               selection.config
                   ? std::optional<int>(selection.config->default_max_tokens)
-                  : std::nullopt};
+                  : std::nullopt,
+          .timeout_ms = config::ConfigManager::getConfig().request_timeout_ms,
+          .max_retries = config::ConfigManager::getConfig().max_retries};
 
       auto gemini_result = gemini_client.generate_text(gemini_request);
 
@@ -647,6 +654,9 @@ ExplainResult QueryGenerator::explainQuery(const ExplainRequest& request) {
       options.max_tokens = selection.config->default_max_tokens;
       options.temperature = selection.config->default_temperature;
     }
+
+    options.timeout_ms = config::ConfigManager::getConfig().request_timeout_ms;
+    options.max_retries = config::ConfigManager::getConfig().max_retries;
 
     auto ai_result = client_result.client.generate_text(options);
 
