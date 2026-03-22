@@ -12,6 +12,7 @@ set(CORE_SOURCES
     ${CMAKE_SOURCE_DIR}/src/core/query_parser.cpp
     ${CMAKE_SOURCE_DIR}/src/utils.cpp
     ${CMAKE_SOURCE_DIR}/src/prompts.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ai_client_factory.cpp
 )
 
 # Create a testable core library (without PostgreSQL SPI dependencies)
@@ -40,6 +41,7 @@ add_executable(pg_ai_query_tests
     unit/test_response_formatter.cpp
     unit/test_utils.cpp
     unit/test_query_parser.cpp
+    unit/test_ai_client_factory.cpp
 )
 
 target_include_directories(pg_ai_query_tests PRIVATE
