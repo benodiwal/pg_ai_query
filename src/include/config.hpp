@@ -20,12 +20,23 @@ enum class Provider { OPENAI, ANTHROPIC, GEMINI, UNKNOWN };
  * including API keys, model selection, and endpoint configuration.
  */
 struct ProviderConfig {
+  /** The AI provider this config applies to */
   Provider provider;
+
+  /** API key for authenticating with this provider */
   std::string api_key;
+
+  /** Default model identifier (e.g. "gpt-4o", "claude-sonnet-4-5-20250929") */
   std::string default_model;
+
+  /** Maximum number of tokens in the AI response (default: 4096) */
   int default_max_tokens;
+
+  /** Sampling temperature in [0.0, 2.0]; lower = more deterministic (default: 0.7) */
   double default_temperature;
-  std::string api_endpoint;  // Custom API endpoint URL (optional)
+
+  /** Custom API endpoint URL; empty string uses the provider's default endpoint */
+  std::string api_endpoint;
 
   // Default constructor
   ProviderConfig()
@@ -43,25 +54,55 @@ struct ProviderConfig {
  * formatting preferences. Typically loaded from ~/.pg_ai.config.
  */
 struct Configuration {
+  /** The first provider config loaded; used as fallback when no provider is specified */
   ProviderConfig default_provider;
+
+  /** All loaded provider configs, one per [openai] / [anthropic] / [gemini] section */
   std::vector<ProviderConfig> providers;
 
-  // General settings
+  // === General Settings ===
+
+  /** Log verbosity: "DEBUG", "INFO", "WARNING", or "ERROR" (default: "INFO") */
   std::string log_level;
+
+  /** Enable or disable all log output (default: false) */
   bool enable_logging;
+
+  /** HTTP request timeout in milliseconds (default: 30000 = 30 s) */
   int request_timeout_ms;
+
+  /** Maximum retry attempts for failed API requests; 0 = no retries (default: 3) */
   int max_retries;
 
-  // Query generation settings
+  // === Query Generation Settings ===
+
+  /**
+   * Automatically append a LIMIT clause to SELECT queries to prevent
+   * accidentally returning very large result sets (default: true)
+   */
   bool enforce_limit;
+
+  /** Row limit appended when enforce_limit is true (default: 1000) */
   int default_limit;
-  /** Maximum characters allowed in natural language query (default: 4000) */
+
+  /** Maximum characters allowed in a natural language query (default: 4000) */
   int max_query_length;
 
-  // Response format settings
+  // === Response Format Settings ===
+
+  /** Include an AI-generated explanation alongside the SQL query (default: true) */
   bool show_explanation;
+
+  /** Include AI-generated warnings in the response (default: true) */
   bool show_warnings;
+
+  /** Include a suggested visualization hint in the response (default: false) */
   bool show_suggested_visualization;
+
+  /**
+   * Return the full response as a JSON object instead of annotated SQL
+   * comments. Useful for programmatic consumption (default: false)
+   */
   bool use_formatted_response;
 
   // Default constructor with sensible defaults

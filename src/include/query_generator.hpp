@@ -14,8 +14,16 @@ namespace pg_ai {
  * natural language using AI providers.
  */
 struct QueryRequest {
+  /** Natural language description of the desired SQL query */
   std::string natural_language;
+
+  /** Optional API key that overrides the value in ~/.pg_ai.config */
   std::string api_key;
+
+  /**
+   * AI provider to use: "openai", "anthropic", "gemini", or "auto"
+   * (auto selects based on which keys are present in config; default: "auto")
+   */
   std::string provider;
 };
 
@@ -26,12 +34,25 @@ struct QueryRequest {
  * explanations, warnings, and success status.
  */
 struct QueryResult {
+  /** The generated SQL query string; empty if generation failed */
   std::string generated_query;
+
+  /** Human-readable explanation of what the query does */
   std::string explanation;
+
+  /** List of caution messages from the AI (e.g. performance notes) */
   std::vector<std::string> warnings;
+
+  /** True when a LIMIT clause was automatically appended to the query */
   bool row_limit_applied;
+
+  /** Optional chart-type hint returned by the AI (e.g. "bar", "line") */
   std::string suggested_visualization;
+
+  /** True if query generation succeeded */
   bool success;
+
+  /** Human-readable error description; non-empty only when success is false */
   std::string error_message;
 };
 
@@ -42,9 +63,16 @@ struct QueryResult {
  * type, and estimated row count.
  */
 struct TableInfo {
+  /** Unqualified table name (e.g. "users") */
   std::string table_name;
+
+  /** Schema that owns the table (e.g. "public") */
   std::string schema_name;
+
+  /** PostgreSQL table type: "BASE TABLE", "VIEW", etc. */
   std::string table_type;
+
+  /** Approximate live row count from pg_stat_user_tables; 0 if unknown */
   int64_t estimated_rows;
 };
 
@@ -55,13 +83,28 @@ struct TableInfo {
  * data type, constraints, and foreign key relationships.
  */
 struct ColumnInfo {
+  /** Column name as defined in the table */
   std::string column_name;
+
+  /** PostgreSQL data type (e.g. "integer", "text", "timestamp with time zone") */
   std::string data_type;
+
+  /** True when the column allows NULL values */
   bool is_nullable;
+
+  /** DEFAULT expression; empty string if none is defined */
   std::string column_default;
+
+  /** True when the column participates in the table's primary key */
   bool is_primary_key;
+
+  /** True when the column is part of a foreign key constraint */
   bool is_foreign_key;
+
+  /** Referenced table name; empty when is_foreign_key is false */
   std::string foreign_table;
+
+  /** Referenced column name in the foreign table; empty when is_foreign_key is false */
   std::string foreign_column;
 };
 
@@ -72,11 +115,22 @@ struct ColumnInfo {
  * all columns, indexes, and retrieval status.
  */
 struct TableDetails {
+  /** Unqualified table name */
   std::string table_name;
+
+  /** Schema that owns the table */
   std::string schema_name;
+
+  /** All columns in ordinal order */
   std::vector<ColumnInfo> columns;
+
+  /** Index definitions as returned by pg_indexes.indexdef */
   std::vector<std::string> indexes;
+
+  /** True if the details were retrieved successfully */
   bool success;
+
+  /** Human-readable error description; non-empty only when success is false */
   std::string error_message;
 };
 
@@ -86,8 +140,13 @@ struct TableDetails {
  * Contains information about all accessible tables in the database.
  */
 struct DatabaseSchema {
+  /** All user-visible tables in the database (excludes system schemas) */
   std::vector<TableInfo> tables;
+
+  /** True if the schema was retrieved successfully */
   bool success;
+
+  /** Human-readable error description; non-empty only when success is false */
   std::string error_message;
 };
 
@@ -97,8 +156,16 @@ struct DatabaseSchema {
  * Contains the SQL query to analyze and optional API configuration.
  */
 struct ExplainRequest {
+  /** The SQL query to run EXPLAIN ANALYZE on (must be a SELECT query) */
   std::string query_text;
+
+  /** Optional API key that overrides the value in ~/.pg_ai.config */
   std::string api_key;
+
+  /**
+   * AI provider to use: "openai", "anthropic", "gemini", or "auto"
+   * (auto selects based on which keys are present in config; default: "auto")
+   */
   std::string provider;
 };
 
@@ -109,10 +176,19 @@ struct ExplainRequest {
  * performance analysis with optimization suggestions.
  */
 struct ExplainResult {
+  /** The original SQL query that was analyzed */
   std::string query;
+
+  /** Raw JSON output from PostgreSQL's EXPLAIN ANALYZE */
   std::string explain_output;
+
+  /** AI-generated performance analysis and optimization suggestions */
   std::string ai_explanation;
+
+  /** True if the analysis completed successfully */
   bool success;
+
+  /** Human-readable error description; non-empty only when success is false */
   std::string error_message;
 };
 
