@@ -83,4 +83,22 @@ std::string formatAPIError(const std::string& provider,
                            int status_code,
                            const std::string& raw_error);
 
+/**
+ * @brief Validate SQL query input before running EXPLAIN ANALYZE
+ *
+ * Only SELECT and WITH (CTE) queries are allowed. Rejects destructive
+ * statements like DELETE, DROP, INSERT, UPDATE, and TRUNCATE.
+ * Also handles leading SQL line comments and whitespace correctly.
+ *
+ * @param query The SQL query string to validate
+ * @return std::nullopt if valid, or error message string if rejected
+ *
+ * @example
+ * auto err = validate_sql_for_explain("DELETE FROM users");
+ * if (err.has_value()) {
+ *   // reject: err.value() contains the error message
+ * }
+ */
+std::optional<std::string> validate_sql_for_explain(const std::string& query);
+
 }  // namespace pg_ai::utils

@@ -16,6 +16,7 @@ extern "C" {
 #include "include/config.hpp"
 #include "include/query_generator.hpp"
 #include "include/response_formatter.hpp"
+#include "include/utils.hpp"
 
 extern "C" {
 PG_MODULE_MAGIC;
@@ -172,6 +173,7 @@ Datum get_table_details(PG_FUNCTION_ARGS) {
  *
  * Runs EXPLAIN ANALYZE on a query and returns an AI-generated explanation
  * of the execution plan, performance insights, and optimization suggestions.
+ * Only SELECT and WITH (CTE) queries are accepted for safety.
  */
 Datum explain_query(PG_FUNCTION_ARGS) {
   try {
@@ -183,6 +185,14 @@ Datum explain_query(PG_FUNCTION_ARGS) {
     std::string api_key = api_key_arg ? text_to_cstring(api_key_arg) : "";
     std::string provider =
         provider_arg ? text_to_cstring(provider_arg) : "auto";
+
+    // Safety check: reject destructive or DDL statements before execution.
+    // Handles leading comments and WITH (CTE) queries correctly.
+    auto validation_error = pg_ai::utils::validate_sql_for_explain(query_text);
+    if (validation_error.has_value()) {
+      ereport(ERROR, (errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+                      errmsg("%s", validation_error.value().c_str())));
+    }
 
     pg_ai::ExplainRequest request{
         .query_text = query_text, .api_key = api_key, .provider = provider};

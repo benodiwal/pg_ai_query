@@ -172,4 +172,49 @@ std::string formatAPIError(const std::string& provider,
   return raw_error;
 }
 
+std::optional<std::string> validate_sql_for_explain(const std::string& query) {
+  // Strip leading whitespace
+  size_t start = query.find_first_not_of(" \t\n\r\f\v");
+  if (start == std::string::npos) {
+    return "Query cannot be empty.";
+  }
+
+  std::string trimmed = query.substr(start);
+
+  // Skip leading SQL line comments (-- ...) to prevent bypass attempts
+  // e.g. "-- comment\nDELETE FROM users" should still be rejected
+  while (trimmed.size() >= 2 && trimmed[0] == '-' && trimmed[1] == '-') {
+    size_t newline = trimmed.find('\n');
+    if (newline == std::string::npos) {
+      return "Query cannot be empty.";
+    }
+    trimmed = trimmed.substr(newline + 1);
+    start = trimmed.find_first_not_of(" \t\n\r\f\v");
+    if (start == std::string::npos) {
+      return "Query cannot be empty.";
+    }
+    trimmed = trimmed.substr(start);
+  }
+
+  // Extract the first keyword (up to first whitespace or opening parenthesis)
+  size_t end = trimmed.find_first_of(" \t\n\r\f\v(");
+  std::string first_keyword =
+      trimmed.substr(0, end == std::string::npos ? trimmed.size() : end);
+
+  // Convert to uppercase for case-insensitive comparison
+  std::transform(first_keyword.begin(), first_keyword.end(),
+                 first_keyword.begin(),
+                 [](unsigned char c) { return std::toupper(c); });
+
+  // Allow SELECT and WITH (covers CTEs: WITH x AS (...) SELECT ...)
+  if (first_keyword == "SELECT" || first_keyword == "WITH") {
+    return std::nullopt;
+  }
+
+  return std::string(
+      "Only SELECT queries can be explained. "
+      "Mutating or DDL statements (e.g. INSERT, UPDATE, DELETE, DROP) "
+      "are not allowed for safety.");
+}
+
 }  // namespace pg_ai::utils
