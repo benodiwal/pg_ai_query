@@ -13,6 +13,7 @@
 namespace pg_ai::config {
 
 Configuration ConfigManager::config_;
+Configuration ConfigManager::base_config_;
 bool ConfigManager::config_loaded_ = false;
 
 Configuration::Configuration() {
@@ -81,13 +82,12 @@ bool ConfigManager::loadConfig(const std::string& config_path) {
   }
 
   if (parseConfig(result.second)) {
+    base_config_ = config_;  // Snapshot file-parsed state before any GUC overlay
     config_loaded_ = true;
     // Enable/disable logging based on config
     logger::Logger::setLoggingEnabled(config_.enable_logging);
     pg_ai::logger::Logger::set_level(config_.log_level);
     logger::Logger::info("Configuration loaded successfully");
-    // Override with environment variables
-    loadEnvConfig();
     return true;
   } else {
     logger::Logger::error("Failed to parse configuration file");
@@ -96,8 +96,63 @@ bool ConfigManager::loadConfig(const std::string& config_path) {
 }
 
 void ConfigManager::loadEnvConfig() {
-  // NOTE for developers: Environment variable loading is disabled for now - all
-  // config via ~/.pg_ai.config
+  // Superseded by GUC variable support (pg_ai.openai_api_key, etc.).
+  // Kept as an empty stub so existing call sites compile without change.
+}
+
+void ConfigManager::applyGucOverrides(const char* openai_key,
+                                       const char* anthropic_key,
+                                       const char* gemini_key) {
+  // Ensure the config file has been loaded before we snapshot from base_config_.
+  // Without this guard, calling applyGucOverrides() before the first query
+  // would copy an empty Configuration{} and wipe file-loaded values.
+  if (!config_loaded_) {
+    loadConfig();
+  }
+
+  // Rebuild the effective config from the file-parsed snapshot.
+  // This is what makes RESET correct: when a GUC key is reset to null/empty,
+  // we simply don't apply it and the file value (in base_config_) wins.
+  config_ = base_config_;
+
+  struct Override {
+    const char* guc_value;
+    Provider provider;
+    const char* default_model;
+    int default_max_tokens;
+  } overrides[] = {
+      {openai_key, Provider::OPENAI, constants::DEFAULT_OPENAI_MODEL,
+       constants::DEFAULT_OPENAI_MAX_TOKENS},
+      {anthropic_key, Provider::ANTHROPIC, constants::DEFAULT_ANTHROPIC_MODEL,
+       constants::DEFAULT_ANTHROPIC_MAX_TOKENS},
+      {gemini_key, Provider::GEMINI, "gemini-2.5-flash",
+       constants::DEFAULT_MAX_TOKENS},
+  };
+
+  for (const auto& ov : overrides) {
+    if (!ov.guc_value || ov.guc_value[0] == '\0') continue;
+
+    ProviderConfig* pc = getProviderConfigMutable(ov.provider);
+    if (pc) {
+      // Provider already in config file: just override the api_key.
+      pc->api_key = std::string(ov.guc_value);
+    } else {
+      // Provider NOT in config file: create a minimal entry with sane defaults
+      // so ProviderSelector can auto-select it when the GUC key is set.
+      ProviderConfig new_cfg;
+      new_cfg.provider           = ov.provider;
+      new_cfg.api_key            = std::string(ov.guc_value);
+      new_cfg.default_model      = ov.default_model;
+      new_cfg.default_max_tokens = ov.default_max_tokens;
+      new_cfg.default_temperature = constants::DEFAULT_TEMPERATURE;
+      config_.providers.push_back(new_cfg);
+    }
+  }
+
+  // Keep default_provider in sync with providers[0], matching parseConfig().
+  if (!config_.providers.empty()) {
+    config_.default_provider = config_.providers[0];
+  }
 }
 
 const Configuration& ConfigManager::getConfig() {
@@ -147,7 +202,8 @@ Provider ConfigManager::stringToProvider(const std::string& provider_str) {
 }
 
 void ConfigManager::reset() {
-  config_ = Configuration();
+  config_       = Configuration();
+  base_config_  = Configuration();
   config_loaded_ = false;
 }
 
