@@ -20,14 +20,32 @@ enum class Provider { OPENAI, ANTHROPIC, GEMINI, UNKNOWN };
  * including API keys, model selection, and endpoint configuration.
  */
 struct ProviderConfig {
+  /** AI provider type: OPENAI, ANTHROPIC, GEMINI, or UNKNOWN */
   Provider provider;
-  std::string api_key;
-  std::string default_model;
-  int default_max_tokens;
-  double default_temperature;
-  std::string api_endpoint;  // Custom API endpoint URL (optional)
 
-  // Default constructor
+  /** API key for authenticating with the provider (required) */
+  std::string api_key;
+
+  /**
+   * Model identifier to use for requests.
+   * Examples: "gpt-4o" (OpenAI), "claude-sonnet-4-5-20250929" (Anthropic),
+   *           "gemini-2.0-flash" (Gemini)
+   */
+  std::string default_model;
+
+  /** Maximum tokens in the AI response (default: 4096) */
+  int default_max_tokens;
+
+  /**
+   * Sampling temperature for response randomness (default: 0.7).
+   * Range: 0.0 (deterministic) to 2.0 (highly creative).
+   * Lower values produce more consistent SQL output.
+   */
+  double default_temperature;
+
+  /** Custom API endpoint URL. Leave empty to use the provider's default. */
+  std::string api_endpoint;
+
   ProviderConfig()
       : provider(Provider::UNKNOWN),
         default_max_tokens(4096),
@@ -43,28 +61,54 @@ struct ProviderConfig {
  * formatting preferences. Typically loaded from ~/.pg_ai.config.
  */
 struct Configuration {
+  /** The provider to use when none is specified in a request */
   ProviderConfig default_provider;
+
+  /** All configured providers (populated from config file sections) */
   std::vector<ProviderConfig> providers;
 
-  // General settings
+  // === General Settings ===
+
+  /** Log verbosity level: "DEBUG", "INFO", "WARNING", "ERROR" (default: "INFO") */
   std::string log_level;
+
+  /** Enable or disable all logging output (default: true) */
   bool enable_logging;
+
+  /** API request timeout in milliseconds (default: 30000 = 30 seconds) */
   int request_timeout_ms;
+
+  /** Maximum retry attempts for failed API requests; 0 disables retries (default: 3) */
   int max_retries;
 
-  // Query generation settings
+  // === Query Generation Settings ===
+
+  /**
+   * Automatically append a LIMIT clause to generated SELECT queries
+   * to prevent accidental large result sets (default: true)
+   */
   bool enforce_limit;
+
+  /** Row limit to apply when enforce_limit is true (default: 100) */
   int default_limit;
-  /** Maximum characters allowed in natural language query (default: 4000) */
+
+  /** Maximum characters allowed in the natural language input (default: 4000) */
   int max_query_length;
 
-  // Response format settings
+  // === Response Format Settings ===
+
+  /** Include a natural-language explanation of the generated SQL (default: true) */
   bool show_explanation;
+
+  /** Include warnings about potential issues with the generated query (default: true) */
   bool show_warnings;
+
+  /** Include a suggested visualization type for the query results (default: false) */
   bool show_suggested_visualization;
+
+  /** Return a structured JSON response instead of raw SQL text (default: true) */
   bool use_formatted_response;
 
-  // Default constructor with sensible defaults
   Configuration();
 };
 
