@@ -8,6 +8,33 @@
 
 namespace pg_ai {
 
+// Strip markdown SQL fences from LLM responses.
+// Handles formats like:
+// ```sql
+// ```postgresql
+// ```postgres
+static std::string stripSQLFences(const std::string& text) {
+  std::regex fence(R"(```(?:sql|postgresql|postgres)?\s*([\s\S]*?)\s*```)",
+                   std::regex::icase);
+
+  std::smatch match;
+
+  if (std::regex_search(text, match, fence)) {
+    std::string sql = match[1].str();
+
+    auto start = sql.find_first_not_of(" \n\r\t");
+    auto end = sql.find_last_not_of(" \n\r\t");
+
+    if (start != std::string::npos && end != std::string::npos) {
+      sql = sql.substr(start, end - start + 1);
+    }
+
+    return sql;
+  }
+
+  return text;
+}
+
 nlohmann::json QueryParser::extractSQLFromResponse(const std::string& text) {
   // ------------------------------------------------------------
   // Attempt to extract JSON embedded in markdown code blocks.
@@ -65,7 +92,10 @@ nlohmann::json QueryParser::extractSQLFromResponse(const std::string& text) {
   // This ensures we still return a usable structure even when
   // the AI output is not valid JSON.
   // ------------------------------------------------------------
-  return {{"sql", text}, {"explanation", "Raw LLM output (no JSON detected)"}};
+ std::string cleaned_sql = stripSQLFences(text);
+
+return {{"sql", cleaned_sql},
+        {"explanation", "Raw LLM output (no JSON detected)"}};
 }
 
 bool QueryParser::accessesSystemTables(const std::string& sql) {
