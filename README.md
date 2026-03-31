@@ -193,13 +193,37 @@ Complete documentation is available at: https://benodiwal.github.io/pg_ai_query/
 - [API Reference](https://benodiwal.github.io/pg_ai_query/api-reference.html)
 - [Troubleshooting](https://benodiwal.github.io/pg_ai_query/troubleshooting.html)
 
-## Safety and Security
+## 🔒 Safety and Security
 
 - **System Table Protection**: Blocks access to `information_schema` and `pg_catalog`
 - **Model Availability**: Accepts any valid model name string (verify availability with provider)
 - **Limited Scope**: Only operates on user tables
 - **Configurable Limits**: Built-in row limit enforcement
 - **API Key Security**: Secure handling of API credentials
+
+### ⚠️ Protecting Your API Keys
+
+The configuration file `~/.pg_ai.config` contains sensitive API keys. Follow these best practices to keep them secure:
+
+**Never commit your config file to version control.** Add it to your `.gitignore`:
+```bash
+echo "~/.pg_ai.config" >> .gitignore
+echo ".pg_ai.config" >> .gitignore
+```
+
+**Set strict file permissions** so only your user can read it:
+```bash
+chmod 600 ~/.pg_ai.config
+```
+
+**Use environment variables instead of hardcoding keys** (recommended for production):
+```bash
+export OPENAI_API_KEY="your-key-here"
+export ANTHROPIC_API_KEY="your-key-here"
+export GEMINI_API_KEY="your-key-here"
+```
+
+> 💡 **Note:** A future improvement planned for this extension is a decoupled sidecar service that reads API keys securely from environment variables or a secrets manager — eliminating the need to store keys in a config file entirely. See [GitHub Issues](https://github.com/benodiwal/pg_ai_query/issues) for discussion.
 
 ## Contributing
 
