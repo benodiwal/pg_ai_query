@@ -101,6 +101,7 @@ set(SOURCES
     src/utils.cpp
     src/prompts.cpp
     src/config.cpp
+    src/core/metadata.cpp
 )
 
 # Get PostgreSQL version to handle platform-specific naming conventions
