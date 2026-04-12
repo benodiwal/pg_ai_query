@@ -319,6 +319,21 @@ TEST_F(ResponseFormatterTest, EmptyWarningsNotIncluded) {
   EXPECT_FALSE(j.contains("warnings"));
 }
 
+TEST_F(ResponseFormatterTest, JSONIncludesConfidenceAndMetadata) {
+  auto result = createBasicResult();
+  result.confidence_score = 0.92;
+  result.metadata = json{{"intent", "analytics"}, {"tables_used", {"users"}}};
+  auto config = createConfig(true, true, false, false);
+
+  std::string output = ResponseFormatter::formatResponse(result, config);
+  json j = json::parse(output);
+
+  ASSERT_TRUE(j.contains("confidence_score"));
+  EXPECT_DOUBLE_EQ(j["confidence_score"].get<double>(), 0.92);
+  ASSERT_TRUE(j.contains("metadata"));
+  EXPECT_EQ(j["metadata"]["intent"], "analytics");
+}
+
 // Test empty visualization is not included
 TEST_F(ResponseFormatterTest, EmptyVisualizationNotIncluded) {
   auto result = createBasicResult();
@@ -342,3 +357,52 @@ TEST_F(ResponseFormatterTest, JSONIsPrettyPrinted) {
   // Pretty-printed JSON should contain newlines
   EXPECT_THAT(output, testing::HasSubstr("\n"));
 }
+
+// Test that documentation links appear in formatted response
+
+TEST_F(ResponseFormatterTest, IncludesPostgresDocumentationLink) {
+  QueryResult result = createBasicResult();
+
+  result.explanation =
+      "PostgreSQL indexes improve query performance. "
+      "See https://www.postgresql.org/docs/current/indexes.html";
+
+  Configuration config = createConfig(false, true, false, false);
+
+  std::string formatted =
+      pg_ai::ResponseFormatter::formatResponse(result, config);
+
+  EXPECT_NE(formatted.find("postgresql.org/docs"), std::string::npos);
+}
+
+// Test specific documentation page
+TEST_F(ResponseFormatterTest, IndexDocumentationLinkPresent) {
+  QueryResult result = createBasicResult();
+
+  result.explanation =
+      "Documentation: https://www.postgresql.org/docs/current/indexes.html";
+
+  Configuration config = createConfig(false, true, false, false);
+
+  std::string formatted =
+      pg_ai::ResponseFormatter::formatResponse(result, config);
+
+  EXPECT_NE(formatted.find("indexes.html"), std::string::npos);
+}
+ // Test when no documentation link exists
+TEST_F(ResponseFormatterTest, HandlesMissingDocumentationLink) {
+  QueryResult result = createBasicResult();
+
+  result.explanation = "PostgreSQL indexes improve performance.";
+
+  Configuration config = createConfig(false, true, false, false);
+
+  std::string formatted =
+      pg_ai::ResponseFormatter::formatResponse(result, config);
+
+  EXPECT_EQ(formatted.find("postgresql.org/docs"), std::string::npos);
+}
+
+
+
+

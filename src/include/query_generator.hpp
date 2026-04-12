@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -17,6 +18,7 @@ struct QueryRequest {
   std::string natural_language;
   std::string api_key;
   std::string provider;
+  std::string schema_context;
 };
 
 /**
@@ -31,6 +33,8 @@ struct QueryResult {
   std::vector<std::string> warnings;
   bool row_limit_applied;
   std::string suggested_visualization;
+  std::optional<double> confidence_score;
+  nlohmann::json metadata;
   bool success;
   std::string error_message;
 };
@@ -244,6 +248,18 @@ class QueryGenerator {
    * @return Complete prompt string ready for AI API
    */
   static std::string buildPrompt(const QueryRequest& request);
+
+  /**
+   * @brief Normalize user-provided schema context for prompt inclusion
+   *
+   * Supports JSON and plain text formats. If JSON is provided in a
+   * recognized tables/columns shape, it is converted into concise
+   * table/column lines for the LLM prompt.
+   *
+   * @param schema_context Raw schema input from the user
+   * @return Normalized schema context string for prompt
+   */
+  static std::string normalizeSchemaContext(const std::string& schema_context);
 
   /**
    * @brief Log model configuration settings

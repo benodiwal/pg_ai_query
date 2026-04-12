@@ -143,6 +143,8 @@ QueryResult QueryParser::parseQueryResponse(const std::string& response_text) {
   nlohmann::json j = extractSQLFromResponse(response_text);
   std::string sql = j.value("sql", "");
   std::string explanation = j.value("explanation", "");
+  std::optional<double> confidence_score = std::nullopt;
+  nlohmann::json metadata = nlohmann::json::object();
 
   std::vector<std::string> warnings_vec;
   try {
@@ -168,6 +170,21 @@ QueryResult QueryParser::parseQueryResponse(const std::string& response_text) {
                             std::string(e.what()));
   }
 
+  try {
+    if (j.contains("confidence_score") &&
+        (j["confidence_score"].is_number_float() ||
+         j["confidence_score"].is_number_integer())) {
+      confidence_score = j["confidence_score"].get<double>();
+    }
+
+    if (j.contains("metadata") && j["metadata"].is_object()) {
+      metadata = j["metadata"];
+    }
+  } catch (const std::exception& e) {
+    logger::Logger::warning("Error parsing optional metadata fields: " +
+                            std::string(e.what()));
+  }
+
   // Check for error indicators in explanation/warnings
   if (hasErrorIndicators(explanation, warnings_vec)) {
     return QueryResult{.generated_query = "",
@@ -175,6 +192,8 @@ QueryResult QueryParser::parseQueryResponse(const std::string& response_text) {
                        .warnings = warnings_vec,
                        .row_limit_applied = false,
                        .suggested_visualization = "",
+                       .confidence_score = confidence_score,
+                       .metadata = metadata,
                        .success = false,
                        .error_message = explanation};
   }
@@ -186,6 +205,8 @@ QueryResult QueryParser::parseQueryResponse(const std::string& response_text) {
                        .warnings = warnings_vec,
                        .row_limit_applied = false,
                        .suggested_visualization = "",
+                       .confidence_score = confidence_score,
+                       .metadata = metadata,
                        .success = true,
                        .error_message = ""};
   }
@@ -211,6 +232,8 @@ QueryResult QueryParser::parseQueryResponse(const std::string& response_text) {
       .warnings = warnings_vec,
       .row_limit_applied = j.value("row_limit_applied", false),
       .suggested_visualization = j.value("suggested_visualization", "table"),
+      .confidence_score = confidence_score,
+      .metadata = metadata,
       .success = true,
       .error_message = ""};
 }

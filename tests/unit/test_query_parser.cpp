@@ -310,6 +310,27 @@ TEST_F(QueryParserTest, ParseResponse_DefaultVisualization) {
   EXPECT_EQ(result.suggested_visualization, "table");
 }
 
+TEST_F(QueryParserTest, ParseResponse_WithConfidenceAndMetadata) {
+  std::string response = R"({
+        "sql": "SELECT id, email FROM users",
+        "explanation": "Retrieves user identifiers and emails",
+        "confidence_score": 0.87,
+        "metadata": {
+          "intent": "reporting",
+          "tables_used": ["users"]
+        }
+    })";
+
+  QueryResult result = QueryParser::parseQueryResponse(response);
+
+  EXPECT_TRUE(result.success);
+  ASSERT_TRUE(result.confidence_score.has_value());
+  EXPECT_DOUBLE_EQ(result.confidence_score.value(), 0.87);
+  ASSERT_TRUE(result.metadata.is_object());
+  EXPECT_EQ(result.metadata["intent"], "reporting");
+  EXPECT_EQ(result.metadata["tables_used"].size(), 1);
+}
+
 // Test with fixture files
 TEST_F(QueryParserTest, ParseResponse_ValidQueryFixture) {
   std::string response = readResponseFixture("valid_query_response.json");

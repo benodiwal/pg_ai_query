@@ -178,30 +178,33 @@ std::string QueryGenerator::buildPrompt(const QueryRequest& request) {
   prompt << "Generate a PostgreSQL query for this request:\n\n";
   prompt << "Request: " << request.natural_language << "\n";
 
-  std::string schema_context;
-  try {
-    auto schema = getDatabaseTables();
-    if (schema.success) {
-      schema_context = formatSchemaForAI(schema);
+  std::string schema_context = normalizeSchemaContext(request.schema_context);
 
-      std::vector<std::string> mentioned_tables;
-      for (const auto& table : schema.tables) {
-        if (request.natural_language.find(table.table_name) !=
-            std::string::npos) {
-          mentioned_tables.push_back(table.table_name);
+  if (schema_context.empty()) {
+    try {
+      auto schema = getDatabaseTables();
+      if (schema.success) {
+        schema_context = formatSchemaForAI(schema);
+
+        std::vector<std::string> mentioned_tables;
+        for (const auto& table : schema.tables) {
+          if (request.natural_language.find(table.table_name) !=
+              std::string::npos) {
+            mentioned_tables.push_back(table.table_name);
+          }
+        }
+
+        for (size_t i = 0; i < mentioned_tables.size() && i < 3; ++i) {
+          auto table_details = getTableDetails(mentioned_tables[i]);
+          if (table_details.success) {
+            schema_context += "\n" + formatTableDetailsForAI(table_details);
+          }
         }
       }
-
-      for (size_t i = 0; i < mentioned_tables.size() && i < 3; ++i) {
-        auto table_details = getTableDetails(mentioned_tables[i]);
-        if (table_details.success) {
-          schema_context += "\n" + formatTableDetailsForAI(table_details);
-        }
-      }
+    } catch (const std::exception& e) {
+      logger::Logger::warning("Error building schema context for prompt: " +
+                              std::string(e.what()));
     }
-  } catch (const std::exception& e) {
-    logger::Logger::warning("Error building schema context for prompt: " +
-                            std::string(e.what()));
   }
 
   if (!schema_context.empty()) {
@@ -209,6 +212,97 @@ std::string QueryGenerator::buildPrompt(const QueryRequest& request) {
   }
 
   return prompt.str();
+}
+
+std::string QueryGenerator::normalizeSchemaContext(
+    const std::string& schema_context) {
+  if (schema_context.empty()) {
+    return "";
+  }
+
+  try {
+    nlohmann::json schema_json = nlohmann::json::parse(schema_context);
+    nlohmann::json tables_json;
+
+    if (schema_json.is_object() && schema_json.contains("tables") &&
+        schema_json["tables"].is_array()) {
+      tables_json = schema_json["tables"];
+    } else if (schema_json.is_array()) {
+      tables_json = schema_json;
+    }
+
+    if (!tables_json.is_array()) {
+      return schema_context;
+    }
+
+    std::ostringstream out;
+    out << "=== USER PROVIDED SCHEMA ===\n";
+    out << "Use this schema as source of truth for table/column names.\n\n";
+
+    for (const auto& table : tables_json) {
+      if (!table.is_object()) {
+        continue;
+      }
+
+      std::string table_name = table.value("table_name", "");
+      if (table_name.empty()) {
+        table_name = table.value("name", "");
+      }
+
+      std::string schema_name = table.value("schema_name", "");
+      if (schema_name.empty()) {
+        schema_name = table.value("schema", "");
+      }
+
+      if (table_name.empty()) {
+        continue;
+      }
+
+      if (!schema_name.empty()) {
+        out << "- " << schema_name << "." << table_name;
+      } else {
+        out << "- " << table_name;
+      }
+
+      if (table.contains("columns") && table["columns"].is_array()) {
+        std::vector<std::string> columns;
+        for (const auto& col : table["columns"]) {
+          if (col.is_string()) {
+            columns.push_back(col.get<std::string>());
+          } else if (col.is_object()) {
+            std::string col_name = col.value("column_name", "");
+            if (col_name.empty()) {
+              col_name = col.value("name", "");
+            }
+            if (!col_name.empty()) {
+              columns.push_back(col_name);
+            }
+          }
+        }
+
+        if (!columns.empty()) {
+          out << " columns: ";
+          for (size_t i = 0; i < columns.size(); ++i) {
+            if (i > 0) {
+              out << ", ";
+            }
+            out << columns[i];
+          }
+        }
+      }
+
+      out << "\n";
+    }
+
+    std::string normalized = out.str();
+    if (normalized.find("- ") == std::string::npos) {
+      return schema_context;
+    }
+
+    return normalized;
+  } catch (const std::exception&) {
+    return schema_context;
+  }
 }
 
 // Parsing logic has been moved to QueryParser class for testability

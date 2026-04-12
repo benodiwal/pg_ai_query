@@ -27,7 +27,7 @@ PG_FUNCTION_INFO_V1(explain_query);
 
 /**
  * generate_query(natural_language_query text, api_key text DEFAULT NULL,
- * provider text DEFAULT 'auto')
+ * provider text DEFAULT 'auto', schema_context text DEFAULT NULL)
  *
  * Generates a SQL query from natural language input with automatic schema
  * discovery Provider options: 'openai', 'anthropic', 'auto' (auto-select based
@@ -38,14 +38,20 @@ Datum generate_query(PG_FUNCTION_ARGS) {
     text* nl_query_arg = PG_GETARG_TEXT_PP(0);
     text* api_key_arg = PG_ARGISNULL(1) ? nullptr : PG_GETARG_TEXT_PP(1);
     text* provider_arg = PG_ARGISNULL(2) ? nullptr : PG_GETARG_TEXT_PP(2);
+  text* schema_context_arg =
+    (PG_NARGS() > 3 && !PG_ARGISNULL(3)) ? PG_GETARG_TEXT_PP(3) : nullptr;
 
     std::string nl_query = text_to_cstring(nl_query_arg);
     std::string api_key = api_key_arg ? text_to_cstring(api_key_arg) : "";
     std::string provider =
         provider_arg ? text_to_cstring(provider_arg) : "auto";
+  std::string schema_context =
+    schema_context_arg ? text_to_cstring(schema_context_arg) : "";
 
-    pg_ai::QueryRequest request{
-        .natural_language = nl_query, .api_key = api_key, .provider = provider};
+  pg_ai::QueryRequest request{.natural_language = nl_query,
+                .api_key = api_key,
+                .provider = provider,
+                .schema_context = schema_context};
 
     auto result = pg_ai::QueryGenerator::generateQuery(request);
 

@@ -13,12 +13,29 @@ RETURNS text
 AS 'MODULE_PATHNAME', 'generate_query'
 LANGUAGE C;
 
+-- Overload: Generate SQL using explicit user-provided schema context (JSON or text)
+CREATE OR REPLACE FUNCTION generate_query(
+    natural_language_query text,
+    api_key text,
+    provider text,
+    schema_context text
+)
+RETURNS text
+AS 'MODULE_PATHNAME', 'generate_query'
+LANGUAGE C;
+
 -- Example usage:
 -- SELECT generate_query('Show me all users created in the last 7 days');
 -- SELECT generate_query('Count orders by status');
 -- SELECT generate_query('Show me all users', 'your-api-key-here');
 -- SELECT generate_query('Show me all users', 'your-api-key-here', 'openai');
 -- SELECT generate_query('Show me all users', 'your-api-key-here', 'anthropic');
+-- SELECT generate_query(
+--   'show total order amount per customer',
+--   'your-api-key-here',
+--   'openai',
+--   '{"tables":[{"schema":"public","name":"orders","columns":["id","customer_id","amount"]},{"schema":"public","name":"customers","columns":["id","name"]}]}'
+-- );
 
 COMMENT ON FUNCTION generate_query(text, text, text) IS
 'Generate a PostgreSQL SELECT query from natural language description with automatic database schema discovery.
@@ -28,6 +45,16 @@ Parameters:
   - provider: AI provider name (openai, anthropic, gemini, or auto)
 Returns: Generated SQL query string
 Example: SELECT generate_query(''show top 10 products by sales'', ''sk-...'', ''openai'');';
+
+COMMENT ON FUNCTION generate_query(text, text, text, text) IS
+'Generate a PostgreSQL query from natural language using user-provided schema context.
+Parameters:
+    - natural_language_query: Natural language description of desired query
+    - api_key: API key for the AI provider (NULL to use config file)
+    - provider: AI provider name (openai, anthropic, gemini, or auto)
+    - schema_context: Schema details as JSON or plain text (tables and columns)
+Returns: Generated SQL query string or formatted response based on extension configuration
+Example: SELECT generate_query(''count orders by customer'', ''sk-...'', ''openai'', ''{"tables":[{"name":"orders","columns":["id","customer_id"]}]}'' );';
 
 -- Get all tables in the database with metadata
 CREATE OR REPLACE FUNCTION get_database_tables()

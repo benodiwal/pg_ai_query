@@ -72,6 +72,14 @@ std::string ResponseFormatter::createJSONResponse(
     response["row_limit_applied"] = true;
   }
 
+  if (result.confidence_score.has_value()) {
+    response["confidence_score"] = result.confidence_score.value();
+  }
+
+  if (result.metadata.is_object() && !result.metadata.empty()) {
+    response["metadata"] = result.metadata;
+  }
+
   return response.dump(2);  // Pretty print with 2-space indentation
 }
 

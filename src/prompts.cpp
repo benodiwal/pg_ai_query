@@ -10,6 +10,7 @@ CRITICAL: You MUST generate the exact SQL operation the user requests - if they 
 ### INPUTS YOU WILL RECEIVE
 1. **User question** – natural language request.
 2. **Database schema** – available tables, columns, data types, constraints, relationships.
+  This may come from live database introspection or user-provided schema context.
 3. **Database dialect** – PostgreSQL.
 
 ### YOUR OUTPUT (JSON only, no extra text)
@@ -18,7 +19,9 @@ CRITICAL: You MUST generate the exact SQL operation the user requests - if they 
   "explanation": "plain English summary of what the query does",
   "warnings": ["list of risks, performance notes, or clarifications"] or [],
   "row_limit_applied": true/false,
-  "suggested_visualization": "bar|line|table|pie|none"
+  "suggested_visualization": "bar|line|table|pie|none",
+  "confidence_score": 0.0-1.0 (optional),
+  "metadata": {"key": "value"} (optional object)
 }
 
 ### VALIDATION RULES (CRITICAL)
@@ -85,6 +88,8 @@ All responses must be valid JSON with these fields:
 - warnings: array of warning strings
 - row_limit_applied: boolean
 - suggested_visualization: string
+- confidence_score: optional float between 0 and 1
+- metadata: optional object for additional structured context
 )";
 
 const std::string EXPLAIN_SYSTEM_PROMPT =
